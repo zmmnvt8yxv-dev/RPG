@@ -45,8 +45,9 @@ The main wheel contains 32 event categories, conditionally filtered: training, q
 - **Combat:** a named character/crew wheel and an automatic reception wheel establish the context. A peaceful reception leads to a social-resolution wheel; a hostile reception leads to an instinct wheel and exactly **one encounter-resolution wheel** decides victory, lethal victory, escape, injury, mercy/rescue, capture or death. Combat rating includes ranks, Haki, fruit mastery, weapons, allies, equipment, injuries and aging. Named opponents have individually authored ratings. Lacking Armament makes attacking a Logia harder. Offensive impulses scale down when the opponent greatly outclasses you; the urge to flee still adds seven percentage points. This is a game rating, not canonical power scaling.
 - **Growth:** practice thresholds are 0, 10, 30, 70, 140 and 260; shorter mastery tracks use only the applicable thresholds. Training builds progress rather than rerolling a character's existing ranks. Haki awakening adds a missing type. A newly eaten fruit begins at its lowest mastery.
 - **Inventory:** fruit can be eaten, stored, sold, gifted or lost as fate decides. Stored fruit can reappear in a later provisions event. A character who already has a fruit cannot eat a second. Held fruits are excluded from new discovery pools. Compatible weapons replace the least-practiced slot, keeping the old weapon in inventory; the new weapon starts at novice mastery. Medical supplies are used automatically, manuals grant practice, and armor affects combat rating.
-- **World:** generated events change a persistent danger level (0–5), altering encounter frequency and enemy strength. They do not follow canon's fixed chronology.
-- **Death:** lethal events or aging permanently end the run. The final character, counters, cause, age, timeline and every roll remain exportable. Results commit before their animations, so a refresh resumes after the result instead of rerolling it (when browser storage is available).
+- **World:** world events now change persistent **stability** and government control instead of giving every character the same risk. Your displayed 0–5 danger is derived from allegiance, local sea tier, bounty, active laws and local danger zones. Stable government waters can be near 0–1 for a Marine while remaining near 5 for a pirate; instability pushes both sides toward dangerous middle/high values. Buster Calls, island eradication, new laws, pirate executions, uprisings, prison breaks and wars can reshape later travel and encounter pools.
+- **Crew turns:** every named companion gets a deterministic background turn after each completed chapter. They can strengthen, pursue personal goals, gain or lose loyalty, get hurt, leave the crew or die. These rolls are hidden from the main wheel but written into the chapter effects and replay identically from an export.
+- **Death:** lethal combat, dangerous travel, rescues, island expeditions, captivity and aging can permanently end a run, with lethality scaling upward in dangerous conditions. Companion deaths are also permanent in the alternate world. The final character, counters, cause, age, timeline and every roll remain exportable. Results commit before their animations, so a refresh resumes after the result instead of rerolling it (when browser storage is available).
 
 ### Aging settings
 
@@ -78,6 +79,10 @@ The browser key remains `grand-line-origins:v1` so existing saves are found. New
 
 Canon names, affiliations and broad abilities provide the setting. Ratings, likelihoods, life priorities, dialogue-free story premises and reactions to the player are authored game fiction, not canonical events or official statistics. Current cast affiliations are curated era snapshots, so later canonical changes are not automatically replayed.
 
+### QGIS world-data bridge
+
+The authored QGIS project uses islands, regions, routes, settlements, barriers and danger-zone layers. The browser simulation mirrors those field contracts in `src/simulation.js`, including route travel cost/days, danger level/score, faction access, encounter/outcome chance, danger-zone severity and faction. The supplied `.qgz` references external GeoPackages, so exact geometry/features still need to be exported into repository-friendly data before the static site can route directly over every mapped edge. Until then, the existing named-place network supplies location tiers while the same danger/faction concepts drive the simulation.
+
 ## Hosting on GitHub Pages
 
 The repository contains a manual Pages workflow with tests. In GitHub **Settings → Pages**, choose **GitHub Actions** as the source. Run **Deploy game to Pages** under Actions. No deployment runs automatically on source push, so enabling public hosting is an explicit action. Asset paths are relative and work under the `/RPG/` project path.
@@ -91,6 +96,7 @@ The app works without network services after assets are loaded. Google Fonts is 
 - `src/journey-data.js` — event catalogs, instincts, growth tracks and longevity settings.
 - `src/journey.js` — current journey state machine, progression, aging and versioned save replay.
 - `src/story-data.js` / `src/story.js` — canon cast, locations, dream milestones, priorities and relationship memory.
+- `src/simulation.js` — faction-sensitive danger, world stability, map-data contract, destructive world events and deterministic companion background turns.
 - `src/journey-v1.js` / `src/journey-data-v1.js` — frozen compatibility rules for existing saves.
 - `src/app.js` — creator/journey UI, wheel animation, live character, timeline, browser saves and downloads.
 - `style.css` / `index.html` — responsive presentation.

@@ -1,6 +1,7 @@
 import {CANON,PLACES,REGIONS,DREAMS} from './story-data.js';
 import {eras} from './engine.js';
 import {combatPower,levelOf,lifespanFor} from './journey-v1.js';
+import {dangerExplanation} from './simulation.js';
 export {CANON,PLACES,REGIONS,DREAMS};
 export function initializeStory(j){
  if(j.story)return j;
@@ -23,7 +24,7 @@ export function lifeContext(j){
  if(young)reasons.push('Young adventurer: learning and preparation carry extra weight.');
  if(elder)reasons.push('Later life: knowledge, recovery, homecoming and teaching replace physical grinding.');
  if(j.injury)reasons.push('Injuries favor recovery and reduce strenuous activity.');
- reasons.push(`Your dream favors ${dreamOf(j).focus.join(', ')}.`);
+ reasons.push(`Your dream favors ${dreamOf(j).focus.join(', ')}.`);reasons.push(dangerExplanation(j));
  return {age,relative,stage,young,elder,freshFruit,focus,reasons};
 }
 const aliases={luffy:['Luffy'],zoro:['Zoro'],sanji:['Sanji'],whitebeard:['Whitebeard'],ace:['Ace'],law:['Law'],garp:['Garp']};
@@ -90,7 +91,7 @@ export function shapeEvents(j,base){
  });
 }
 export function travelPool(j){
- const region=placeOf(j)[1],life=lifeContext(j);return PLACES.filter(p=>p[0]!==j.story.location&&p[1]<=Math.min(2,region+1)).map(([value,r,description])=>({value,label:`${value} · ${REGIONS[r]}`,weight:(r===region?12:r>region?(life.freshFruit?1:combatPower(j)>35?14:4):3)*(j.story.visited.includes(value)?.3:1),note:description}));
+ const region=placeOf(j)[1],life=lifeContext(j),destroyed=new Set(j.simulation?.destroyedLocations||[]);return PLACES.filter(p=>p[0]!==j.story.location&&!destroyed.has(p[0])&&p[1]<=Math.min(2,region+1)).map(([value,r,description])=>({value,label:`${value} · ${REGIONS[r]}`,weight:(r===region?12:r>region?(life.freshFruit?1:combatPower(j)>35?14:4):3)*(j.story.visited.includes(value)?.3:1),note:description}));
 }
 export function dreamReadiness(j){
  const d=dreamOf(j),p=j.story.dreamProgress;const needs=[];

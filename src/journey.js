@@ -3,6 +3,7 @@ import {nextStep,values,weightedPick,probability,validateHistory,characterDocume
 import {JOURNEY_VERSION,LIFESPANS,XP_LEVELS,TRACKS,TRAINING_LABELS,EVENTS,EVENT_BY_ID,COMBAT_EVENTS,THREATS,INSTINCTS,WORLD_EVENTS,ROLES,TREASURES,OUTCOME_NOTES} from './journey-data.js';
 import * as legacy from './journey-v1.js';
 import {CANON,REGIONS,initializeStory,lifeContext,placeOf,dreamOf,dreamReadiness,dreamOutcomePool,canonPool,encounterOf,encounterTones,encounterInstincts,trainingWeights,shapeEvents,travelPool,chapterPremise,encounterStory,rememberEncounter} from './story.js';
+import {ensureSimulation,effectiveDanger,worldEventPool,applyWorldEvent,advanceWorldTime,resolveCrewTurns,crewCombatContribution} from './simulation.js';
 export const SAVE_VERSION = 3;
 const clamp=(x,min,max)=>Math.min(max,Math.max(min,x));
 const opt=(value,label,weight,note='')=>({value,label,weight,note});
@@ -20,7 +21,7 @@ export function createJourney(history){
  for(const key of skillKeys)if(character[key]!==undefined){const rank=trackFor(key).indexOf(character[key]);skills[key]=XP_LEVELS[Math.max(0,rank)];}
  const crew=[];if(character.crewMode==='Form your own group')for(let i=1;i<=Number(character.crewSize);i++)crew.push({name:character[`member_${i}_canon`]||character[`member_${i}_generated`],role:character[`member_${i}_role`]||'Canon ally',race:character[`member_${i}_race`]||'Canon',canon:character[`member_${i}_origin`]==='Canon character'});
  const j={version:JOURNEY_VERSION,character,skills,crew,group:character.joinedCrew||character.crewName||null,groupSupport:character.joinedCrew?3:0,startAgeMonths:Number(character.age)*12,ageMonths:Number(character.age)*12,elapsedMonths:0,alive:true,cause:null,chapter:0,pending:null,rolls:[],log:[],injury:0,captured:false,berries:0,bounty:Number((character.bounty||'').replace(/\D/g,''))||0,inventory:[],danger:0,wins:0,losses:0,kills:0,discoveries:0,recruits:0,peakPower:0};
- j.peakPower=combatPower(j);j.legacyCutover=0;j.legacyPending=false;return initializeStory(j);
+ j.peakPower=combatPower(j);j.legacyCutover=0;j.legacyPending=false;j.simulationCutover=0;initializeStory(j);ensureSimulation(j);return j;
 }
 export function liveCharacter(j){
  const a={...j.character,age:ageLabel(j.ageMonths),bounty:j.bounty?money(j.bounty):(j.character.bounty==='No government bounty'?'No government bounty':'No bounty yet')};
@@ -36,7 +37,7 @@ export function combatPower(j){
  n+=['haki_observation','haki_armament','haki_conqueror'].reduce((s,k)=>s+(k in j.skills?3+rank(k)*3:0),0);
  if(j.character.devilFruit==='Yes')n+=5+rank('fruitMastery')*3;
  n+=Object.keys(j.skills).filter(k=>k.startsWith('weaponMastery_')).reduce((s,k)=>s+1+rank(k),0);
- n+=Math.min(j.crew.length+j.groupSupport,8)*.8;
+ n+=Math.min((j.crew||[]).reduce((sum,member)=>sum+crewCombatContribution(member),0)+j.groupSupport*.8,6.4);
  n+=Math.min(j.crew.filter(c=>c.fruit).length,4)*1.5;
  for(const [key,name] of Object.entries(j.character).filter(([k])=>/^weapon_\d+$/.test(k))){const sword=swords.find(w=>w.value===name);n+=sword?(sword.weight<1?3:sword.weight<10?1:0):/Masterwork|Precision/.test(name)?2:0;}
  if(j.inventory.some(i=>i.name==='Protective armor'))n+=3;
@@ -52,7 +53,7 @@ export function boostOutcome(input,value,points){
 }
 export function combatOdds(j,threatValue,instinct='Steady resolve'){
  const threat=CANON.find(c=>c.id===threatValue)||THREATS.find(t=>t.value===threatValue);if(!threat)throw new Error('Unknown opponent');
- const power=combatPower(j),enemy=threat.power+j.danger*2;const ratio=clamp(power/enemy,.03,5);
+ const power=combatPower(j),danger=effectiveDanger(j,'combat'),enemy=threat.power+danger*2;const ratio=clamp(power/enemy,.03,5);
  const speed=levelOf(j,'speed'),iq=levelOf(j,'battleIQ');
  let base=normalize(pool([
  ['victory','Win · opponent survives',25*Math.pow(ratio,1.3),OUTCOME_NOTES.victory],
@@ -61,7 +62,7 @@ export function combatOdds(j,threatValue,instinct='Steady resolve'){
  ['wounded','Lose · survive injured',18/Math.sqrt(ratio),OUTCOME_NOTES.wounded],
  ['spared','Lose · spared or rescued',18/Math.sqrt(ratio),OUTCOME_NOTES.spared],
  ['captured','Lose · captured',9/Math.sqrt(ratio),OUTCOME_NOTES.captured],
- ['death','Killed in battle',Math.min(35,3/Math.pow(ratio,1.1))+j.injury*.5,OUTCOME_NOTES.death],
+ ['death','Killed in battle',Math.min(40,4/Math.pow(ratio,1.08)+danger*1.1)+j.injury*.6,OUTCOME_NOTES.death],
  ]));
  if(threat.style?.includes('Logia')&&!('haki_armament' in j.skills))base=normalize(base.map(o=>({...o,weight:['victory','lethal'].includes(o.value)?o.weight*.35:o.weight})));
  const targets={'Urge to flee':'escape','Aggressive impulse':'lethal','Protect your people':'spared','Read the battlefield':'victory'};
@@ -70,7 +71,7 @@ export function combatOdds(j,threatValue,instinct='Steady resolve'){
 }
 export function eventPool(j){
  if(j.captured)return pool([['prison','Months in captivity',65],['prisonBreak','An opening to escape',35]]);
- return shapeEvents(j,EVENTS.filter(([id])=>!(id==='provisions'&&!j.inventory.some(i=>i.type==='fruit'))&&!(id==='spar'&&!j.crew.length&&!j.groupSupport)&&!(id==='betrayal'&&!j.crew.length&&!j.groupSupport)&&!(id==='hunters'&&!j.bounty)&&!(id==='recruit'&&!companionPool(j).length)&&!(id==='haki'&&['haki_observation','haki_armament','haki_conqueror'].every(k=>k in j.skills))).map(([value,label,weight])=>opt(value,label,weight*(COMBAT_EVENTS.includes(value)?1+j.danger*.12:1))));
+ const danger=effectiveDanger(j);return shapeEvents(j,EVENTS.filter(([id])=>!(id==='provisions'&&!j.inventory.some(i=>i.type==='fruit'))&&!(id==='spar'&&!j.crew.length&&!j.groupSupport)&&!(id==='betrayal'&&!j.crew.length&&!j.groupSupport)&&!(id==='hunters'&&!j.bounty)&&!(id==='recruit'&&!companionPool(j).length)&&!(id==='haki'&&['haki_observation','haki_armament','haki_conqueror'].every(k=>k in j.skills))).map(([value,label,weight])=>opt(value,label,weight*(COMBAT_EVENTS.includes(value)?1+danger*.18:1))));
 }
 export function trainingPool(j){return trainingWeights(j,Object.keys(j.skills).filter(k=>j.skills[k]<XP_LEVELS[trackFor(k).length-1]).map(k=>opt(k,skillLabel(k),k.startsWith('haki_')?2:5)));}
 function heldFruitNames(j){return [j.character.fruit,...j.crew.map(c=>c.fruit),...j.inventory.filter(i=>i.type==='fruit').map(i=>i.name)].filter(Boolean);}
@@ -158,7 +159,7 @@ export function nextJourneyStep(j){
  if(s=need('awakening','Does your will awaken?',pool([['yes','A new power awakens',awakeningChance],['no','Your resolve holds, but no awakening',100-awakeningChance]]),'Only missing types contribute to this chance. Conqueror’s remains rare even when you already have the other two types.'))return s;
  if(a.awakening==='yes')return make('hakiType','Which power answers?',missing,'Only unawakened types are eligible. Already-held types grow through training.');
  }
- if(event==='world')return make('worldResult','The world changes around you.',WORLD_EVENTS,'These alternate-world events are generated independently of the canon storyline. Changes affect later wheels.');
+ if(event==='world')return make('worldResult','The world changes around you.',worldEventPool(j,WORLD_EVENTS),'World stability, government control, laws, executions and island-scale disasters can permanently reshape later wheels.');
  if(event==='treasure')return make('treasureResult','What was hidden away?',TREASURES,'Valuables bring berries; equipment and supplies can affect survival and growth.');
  if(event==='weapon')return make('weaponResult','What waits in the cache?',weaponPool(j),'A compatible weapon replaces your least-practiced weapon slot. Existing style training is retained; the new weapon begins at novice mastery. Unarmed fighters find equipment instead.');
  if(event==='recruit'){
@@ -167,15 +168,15 @@ export function nextJourneyStep(j){
  }
  if(event==='quiet'||event==='celebration')return make('quietResult',event==='quiet'?'How do the quiet months pass?':'How does the celebration end?',pool([['rest','Rest and recovery',60],['work','Honest work pays',25],['practice','Light practice',15]]));
  if(event==='trade')return make('tradeResult','Does fortune favor the deal?',pool([['profit','A profitable deal',45],['manual','Trade for a combat manual',15],['medicine','Trade for medical supplies',20],['loss','A bad bargain',20]]));
- if(event==='island')return make('islandResult','What does the island hold?',pool([['discovery','A remarkable discovery',40],['shelter','Safe harbor',30],['treasure','An abandoned treasure',22],['injury','A dangerous expedition',7],['death','The island claims your life',1]]));
- if(event==='rescue')return make('rescueResult','Can you save them?',pool([['saved','Everyone makes it out',45+combatPower(j)/2],['hurt','You save them, but are hurt',25],['failed','You survive; the rescue fails',20],['death','You die attempting the rescue',2]]),'Your capabilities increase the chance of a safe rescue.');
+ if(event==='island')return make('islandResult','What does the island hold?',pool([['discovery','A remarkable discovery',40],['shelter','Safe harbor',30],['treasure','An abandoned treasure',22],['injury','A dangerous expedition',7+effectiveDanger(j)*.35],['death','The island claims your life',1+effectiveDanger(j)*.35]]));
+ if(event==='rescue')return make('rescueResult','Can you save them?',pool([['saved','Everyone makes it out',45+combatPower(j)/2],['hurt','You save them, but are hurt',25+effectiveDanger(j)*.3],['failed','You survive; the rescue fails',20],['death','You die attempting the rescue',2+effectiveDanger(j)*.45]]),'Your capabilities increase the chance of a safe rescue; unstable waters make intervention more lethal.');
  if(event==='storm'||event==='shipwreck'){
  const canSwim=j.character.devilFruit!=='Yes';const allies=j.crew.length+j.groupSupport;
- return make('seaResult','Do you survive the sea?',pool([['safe','Reach safety',55+(canSwim?10:0)+Math.min(allies,8)*2],['loss','Survive, but lose supplies',25],['hurt','Washed ashore injured',15],['death','Lost to the sea',canSwim?1:allies?3:7]]),canSwim?'Swimming and companions improve survival.':'Devil Fruit users cannot swim. Allies improve the rescue odds.');
+ const danger=effectiveDanger(j,'travel');return make('seaResult','Do you survive the sea?',pool([['safe','Reach safety',55+(canSwim?10:0)+Math.min(allies,8)*2],['loss','Survive, but lose supplies',25],['hurt','Washed ashore injured',15+danger*.35],['death','Lost to the sea',(canSwim?1:allies?3:7)+danger*.4]]),canSwim?'Swimming and companions improve survival.':'Devil Fruit users cannot swim. Allies improve the rescue odds.');
  }
  if(event==='illness')return make('illnessResult','Can you weather the sickness?',pool([['recover','Recover fully',60],['weakened','Survive, still weakened',35+j.injury],['death','The sickness proves fatal',1+j.injury*.3]]));
- if(event==='prison')return make('prisonResult','What happens behind bars?',pool([['held','Remain imprisoned',60],['released','Released in an amnesty',20],['train','Train in secret',19],['death','Die in captivity',1]]),'Captivity replaces the normal event wheel until fate frees you.');
- if(event==='prisonBreak')return make('escapeResult','Does your escape succeed?',pool([['free','Escape to freedom',25+combatPower(j)/2],['held','Caught and returned to your cell',50],['hurt','Caught and injured',20],['death','Killed during the escape',3]]));
+ if(event==='prison')return make('prisonResult','What happens behind bars?',pool([['held','Remain imprisoned',60],['released','Released in an amnesty',20],['train','Train in secret',19],['death','Die in captivity',1+effectiveDanger(j)*.35]]),'Captivity replaces the normal event wheel until fate frees you.');
+ if(event==='prisonBreak')return make('escapeResult','Does your escape succeed?',pool([['free','Escape to freedom',25+combatPower(j)/2],['held','Caught and returned to your cell',50],['hurt','Caught and injured',20+effectiveDanger(j)*.25],['death','Killed during the escape',3+effectiveDanger(j)*.5]]));
  throw new Error(`Unresolved event: ${event}`);
 }
 function improve(j,key,amount,effects){
@@ -191,8 +192,11 @@ function treasureEffect(j,name,effects){
  else {giveItem(j,name,'item',effects);const gains={'Bag of berries':10000,Jewels:30000,'Ancient coin':50000};if(gains[name])cash(j,gains[name],effects);}
 }
 function kill(j,cause,effects){j.alive=false;j.cause=cause;effects.push(`Your journey ends: ${cause}.`);}
+function simulationRollCount(j){return j.rolls.length-(j.legacyCutover||0);}
+function simulationResolutionActive(j){return simulationRollCount(j)>(j.simulationCutover||0);}
 function finishEvent(j){
  const p=j.pending;j.chapter++;
+ if(j.alive&&simulationResolutionActive(j)){advanceWorldTime(j,p.months);p.effects.push(...resolveCrewTurns(j,p.months,p.event));}
  j.log.push({chapter:j.chapter,event:p.event,location:p.location,narrative:p.narrative,trainingTarget:p.picks.target,encounter:p.picks.opponent?CANON.find(c=>c.id===p.picks.opponent)?.name:null,title:EVENT_BY_ID[p.event]?.label||(p.event==='prison'?'Months in captivity':'An opening to escape'),startAge:p.startAge,age:j.ageMonths,months:p.months,result:p.result,effects:[...p.effects],rolls:p.rolls.map(r=>({...r})),alive:j.alive});
  j.peakPower=Math.max(j.peakPower,combatPower(j));j.pending=null;
 }
@@ -256,10 +260,13 @@ function settle(j,result){
  }else if(event==='haki'){
  if(result.value.startsWith('haki_')){j.skills[result.value]=0;e.push(`${skillLabel(result.value)} awakened.`);}else improve(j,'battleIQ',3,e);
  }else if(event==='world'){
- const shifts={'Marine crackdown':1,'An Emperor falls':1,'An island is liberated':-1,'Trade routes reopen':-1,'War engulfs a kingdom':2,'A golden age of discovery':-2};
- j.danger=clamp(j.danger+(shifts[result.value]||0),0,5);e.push(`World danger is now ${j.danger}/5.`);
- if(result.value==='Government amnesty'){j.bounty=Math.floor(j.bounty*.7);e.push(`Bounty reduced to ${money(j.bounty)}.`);}
- if(['Trade routes reopen','A golden age of discovery'].includes(result.value))cash(j,15000,e);
+ if(simulationResolutionActive(j))applyWorldEvent(j,result.value,e);
+ else {
+  const shifts={'Marine crackdown':1,'An Emperor falls':1,'An island is liberated':-1,'Trade routes reopen':-1,'War engulfs a kingdom':2,'A golden age of discovery':-2};
+  j.danger=clamp(j.danger+(shifts[result.value]||0),0,5);e.push(`World danger is now ${j.danger}/5.`);
+  if(result.value==='Government amnesty'){j.bounty=Math.floor(j.bounty*.7);e.push(`Bounty reduced to ${money(j.bounty)}.`);}
+  if(['Trade routes reopen','A golden age of discovery'].includes(result.value))cash(j,15000,e);
+ }
  }else if(event==='treasure')treasureEffect(j,result.value,e);
  else if(event==='weapon'){
  const slots=Object.keys(j.skills).filter(k=>k.startsWith('weaponMastery_')).sort((a,b)=>j.skills[a]-j.skills[b]);
@@ -292,7 +299,7 @@ function settle(j,result){
  if(j.alive&&naturalDeathChance(j.character.race,p.startAge,p.months)>0)p.phase='aging';else finishEvent(j);
 }
 export function applyJourneyRoll(j,value){
- if(j.legacyPending){const record=legacy.applyJourneyRoll(j,value);j.legacyCutover=j.rolls.length;if(!j.pending){j.legacyPending=false;delete j.story;initializeStory(j);}return record;}
+ if(j.legacyPending){const record=legacy.applyJourneyRoll(j,value);j.legacyCutover=j.rolls.length;if(!j.pending){j.legacyPending=false;delete j.story;initializeStory(j);ensureSimulation(j);}return record;}
  const s=nextJourneyStep(j);if(!s)throw new Error('This journey has ended.');
  const selected=s.options.find(o=>o.value===value);if(!selected)throw new Error('That result is not available on this wheel.');
  const record={id:s.id,value,label:selected.label,chance:probability(s.options,value),wheel:s.label,...(s.modifier?{modifier:{...s.modifier}}:{})};
@@ -316,11 +323,11 @@ export function applyJourneyRoll(j,value){
 export function rollJourney(j,random=Math.random){const s=nextJourneyStep(j);if(!s)return null;return applyJourneyRoll(j,weightedPick(s.options,random).value);}
 export function saveDocument(history,j){
  const base=characterDocument(history);
- return {...base,schemaVersion:SAVE_VERSION,character:j?liveCharacter(j):base.character,journey:j?{version:JOURNEY_VERSION,legacyRolls:j.rolls.slice(0,j.legacyCutover),rolls:j.rolls.slice(j.legacyCutover)}:null};
+ return {...base,schemaVersion:SAVE_VERSION,character:j?liveCharacter(j):base.character,journey:j?{version:JOURNEY_VERSION,simulationCutover:j.simulationCutover??0,legacyRolls:j.rolls.slice(0,j.legacyCutover),rolls:j.rolls.slice(j.legacyCutover)}:null};
 }
 function upgradeLegacy(history,rolls){
  const j=legacy.loadDocument({game:'Grand Line Origins',schemaVersion:2,history,journey:{version:1,rolls}}).journey;
- j.version=JOURNEY_VERSION;j.legacyCutover=j.rolls.length;j.legacyPending=!!j.pending;return initializeStory(j);
+ j.version=JOURNEY_VERSION;j.legacyCutover=j.rolls.length;j.legacyPending=!!j.pending;j.simulationCutover=0;initializeStory(j);ensureSimulation(j);return j;
 }
 export function loadDocument(doc){
  if(!doc||doc.game!=='Grand Line Origins'||![1,2,SAVE_VERSION].includes(doc.schemaVersion))throw new Error('This is not a supported Grand Line Origins save.');
@@ -332,8 +339,11 @@ export function loadDocument(doc){
  const old=doc.journey.legacyRolls;
  if(doc.journey.version!==JOURNEY_VERSION||!Array.isArray(doc.journey.rolls)||!Array.isArray(old)||doc.journey.rolls.length+old.length>20000)throw new Error('Invalid journey save.');
  journey=old.length?upgradeLegacy(history,old):createJourney(history);
+ const hasSimulationCutover=Number.isInteger(doc.journey.simulationCutover)&&doc.journey.simulationCutover>=0&&doc.journey.simulationCutover<=doc.journey.rolls.length;
+ journey.simulationCutover=hasSimulationCutover?doc.journey.simulationCutover:doc.journey.rolls.length;
  if(journey.legacyPending&&doc.journey.rolls.length)throw new Error('Finish the saved legacy chapter before adding new story rolls.');
  for(const record of doc.journey.rolls){const s=nextJourneyStep(journey);if(!s||s.id!==record?.id)throw new Error('Journey rolls are out of order or continue after death.');applyJourneyRoll(journey,record.value);}
+ if(!hasSimulationCutover){delete journey.simulation;ensureSimulation(journey);}
  }
  return {history,journey};
 }

@@ -93,6 +93,49 @@ export function mapDangerFor(j,loc=worldLocationOf(j)){
  n+=factionRisk(j,loc);
  return Math.max(-1.5,Math.min(2,n));
 }
+
+const START_REGION_WEIGHTS={east_blue:24,south_blue:15,west_blue:15,north_blue:15,paradise:22,new_world:8,calm_belt:.6,red_line:.4};
+const START_TYPE_WEIGHTS={island:1,town:1.1,port:1.1,city:1.05,sky_island:.55,underwater_site:.35,sea_gate:.18,landmark:.35,dungeon:.12};
+function startingFactionWeight(character,loc){
+ const faction=character?.faction||'Civilian',territory=loc.f||'neutral';
+ const govt=['Marine','Cipher Pol'].includes(faction),pirate=faction==='Pirate',revolutionary=faction==='Revolutionary';
+ if(territory==='neutral')return govt?1.35:pirate?1.5:revolutionary?1.45:2;
+ if(['marines','world_government'].includes(territory))return govt ? 8 : pirate ? .16 : revolutionary ? .2 : 1.4;
+ if(territory==='pirates')return pirate ? 7 : govt ? .18 : revolutionary ? .7 : .65;
+ if(territory==='revolutionary_army')return revolutionary ? 9 : govt ? .18 : pirate ? .65 : 1;
+ return 1;
+}
+function startingStoryWeight(character,loc){
+ let w=1;
+ if(character?.family==='Kozuki'||character?.family==='Shimotsuki')w*=loc.id==='island_wano_country'?24:1;
+ if(character?.family==='Nefertari')w*=loc.id==='island_alabasta_kingdom'?24:1;
+ if(character?.family==='Vinsmoke')w*=loc.id==='island_germa_kingdom'?24:1;
+ if(character?.family==='Charlotte')w*=loc.id==='island_whole_cake_island'?24:1;
+ if(character?.family==='Monkey')w*=['island_dawn_island','island_foosha_village','island_goa_kingdom'].includes(loc.id)?5:1;
+ const joined=character?.joinedCrew||'';
+ if(joined==='G-5 unit'&&loc.id==='island_g_5')w*=30;
+ if(joined==='East Blue Marine branch'&&loc.r==='east_blue'&&loc.f==='marines')w*=8;
+ if(joined==='Marine Headquarters unit'&&['island_marineford','island_g_1'].includes(loc.id))w*=12;
+ if(joined==='Revolutionary Army cell'&&loc.f==='revolutionary_army')w*=12;
+ if(joined==='Kuja Pirates'&&loc.id==='island_amazon_lily')w*=30;
+ if(joined==='Big Mom Pirates'&&loc.id==='island_whole_cake_island')w*=30;
+ return w;
+}
+export function startingLocationPool(jOrCharacter){
+ const character=jOrCharacter?.character||jOrCharacter||{};
+ const counts=Object.fromEntries(WORLD_REGIONS.map(r=>[r.id,Math.max(1,WORLD_LOCATIONS.filter(x=>x.r===r.id).length)]));
+ const young=Number(character.age||0)<=20;
+ return WORLD_LOCATIONS.map(loc=>{
+  let weight=(START_REGION_WEIGHTS[loc.r]||1)/counts[loc.r];
+  weight*=START_TYPE_WEIGHTS[loc.t]??.8;
+  weight*=loc.i==='critical'?1.5:loc.i==='major'?1.35:loc.i==='standard'?1.12:1;
+  weight*=startingFactionWeight(character,loc)*startingStoryWeight(character,loc);
+  if(young&&loc.r==='new_world')weight*=.45;
+  if(young&&BLUE_REGIONS.has(loc.r))weight*=1.3;
+  const territory=loc.f&&loc.f!=='neutral'?loc.f.replaceAll('_',' '):'neutral';
+  return {value:loc.id,label:`${loc.n} · ${regionLabel(loc.r)}`,weight:Math.max(.001,weight),note:`${loc.t.replaceAll('_',' ')} · ${territory}${loc.c?` · ${loc.c.replaceAll('_',' ')}`:''}`};
+ });
+}
 export function worldTravelPool(j){
  const here=syncWorldLocation(j),destroyed=new Set(j.simulation?.destroyedLocations||[]);
  const authored=authoredRoutesFrom(here).filter(r=>!destroyed.has(r.to.n));

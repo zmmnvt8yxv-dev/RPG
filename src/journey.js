@@ -4,7 +4,7 @@ import {JOURNEY_VERSION,LIFESPANS,XP_LEVELS,TRACKS,TRAINING_LABELS,EVENTS,EVENT_
 import * as legacy from './journey-v1.js';
 import {CANON,REGIONS,initializeStory,lifeContext,placeOf,dreamOf,dreamReadiness,dreamOutcomePool,canonPool,encounterOf,encounterTones,encounterInstincts,trainingWeights,shapeEvents,travelPool,chapterPremise,encounterStory,rememberEncounter} from './story.js';
 import {ensureSimulation,effectiveDanger,worldEventPool,applyWorldEvent,advanceWorldTime,resolveCrewTurns,crewCombatContribution} from './simulation.js';
-import {worldLocationOf,resolveWorldLocation,routeFromTo,regionLabel,syncWorldLocation} from './world-map.js';
+import {worldLocationOf,resolveWorldLocation,routeFromTo,regionLabel,syncWorldLocation,startingLocationPool} from './world-map.js';
 export const SAVE_VERSION = 3;
 const clamp=(x,min,max)=>Math.min(max,Math.max(min,x));
 const opt=(value,label,weight,note='')=>({value,label,weight,note});
@@ -21,7 +21,7 @@ export function createJourney(history){
  const character={...values(history)};const skills={};
  for(const key of skillKeys)if(character[key]!==undefined){const rank=trackFor(key).indexOf(character[key]);skills[key]=XP_LEVELS[Math.max(0,rank)];}
  const crew=[];if(character.crewMode==='Form your own group')for(let i=1;i<=Number(character.crewSize);i++)crew.push({name:character[`member_${i}_canon`]||character[`member_${i}_generated`],role:character[`member_${i}_role`]||'Canon ally',race:character[`member_${i}_race`]||'Canon',canon:character[`member_${i}_origin`]==='Canon character'});
- const j={version:JOURNEY_VERSION,character,skills,crew,group:character.joinedCrew||character.crewName||null,groupSupport:character.joinedCrew?3:0,startAgeMonths:Number(character.age)*12,ageMonths:Number(character.age)*12,elapsedMonths:0,alive:true,cause:null,chapter:0,pending:null,rolls:[],log:[],injury:0,captured:false,berries:0,bounty:Number((character.bounty||'').replace(/\D/g,''))||0,inventory:[],danger:0,wins:0,losses:0,kills:0,discoveries:0,recruits:0,peakPower:0};
+ const j={version:JOURNEY_VERSION,character,skills,crew,group:character.joinedCrew||character.crewName||null,groupSupport:character.joinedCrew?3:0,startAgeMonths:Number(character.age)*12,ageMonths:Number(character.age)*12,elapsedMonths:0,alive:true,cause:null,chapter:0,pending:null,rolls:[],log:[],injury:0,captured:false,berries:0,bounty:Number((character.bounty||'').replace(/\D/g,''))||0,inventory:[],danger:0,wins:0,losses:0,kills:0,discoveries:0,recruits:0,peakPower:0,startLocationRollVersion:1,startLocationResolved:false};
  j.peakPower=combatPower(j);j.legacyCutover=0;j.legacyPending=false;j.simulationCutover=0;initializeStory(j);ensureSimulation(j);return j;
 }
 export function liveCharacter(j){
@@ -96,6 +96,7 @@ export function naturalDeathChance(race,startAgeMonths,duration){
 export function nextJourneyStep(j){
  if(j.legacyPending)return legacy.nextJourneyStep(j);
  if(!j.alive)return null;
+ if(!j.startLocationResolved)return {id:'0:startLocation',key:'startLocation',label:'Where does your journey begin?',group:'Journey Setup',options:startingLocationPool(j),note:'This zero-time spin locks your real QGIS starting point before Chapter 1. Faction, family, crew affiliation and age influence the odds.'};
  const p=j.pending;const make=(key,label,opts,note='',extras={})=>({id:`${j.chapter+1}:${key}`,key,label,group:'Journey',options:opts,note,...extras});
  if(!p)return make('event','What lies on the horizon?',eventPool(j),'One event = four months. Follow-up wheels resolve that same period. Time skips state their own duration.');
  if(p.phase==='aging'){
@@ -305,6 +306,11 @@ export function applyJourneyRoll(j,value){
  const selected=s.options.find(o=>o.value===value);if(!selected)throw new Error('That result is not available on this wheel.');
  const record={id:s.id,value,label:selected.label,chance:probability(s.options,value),wheel:s.label,...(s.modifier?{modifier:{...s.modifier}}:{})};
  j.rolls.push({id:s.id,value});
+ if(s.key==='startLocation'){
+  const loc=resolveWorldLocation(value);if(!loc)throw new Error('Unknown starting location.');
+  j.story.locationId=loc.id;j.story.location=loc.n;j.story.visited=[loc.n];j.startLocationResolved=true;
+  return record;
+ }
  if(s.key==='event'){
  j.pending={event:value,location:j.story.location,narrative:chapterPremise(j,value),startAge:j.ageMonths,months:0,picks:{},phase:'event',effects:[],rolls:[record]};return record;
  }
@@ -324,11 +330,11 @@ export function applyJourneyRoll(j,value){
 export function rollJourney(j,random=Math.random){const s=nextJourneyStep(j);if(!s)return null;return applyJourneyRoll(j,weightedPick(s.options,random).value);}
 export function saveDocument(history,j){
  const base=characterDocument(history);
- return {...base,schemaVersion:SAVE_VERSION,character:j?liveCharacter(j):base.character,journey:j?{version:JOURNEY_VERSION,simulationCutover:j.simulationCutover??0,legacyRolls:j.rolls.slice(0,j.legacyCutover),rolls:j.rolls.slice(j.legacyCutover)}:null};
+ return {...base,schemaVersion:SAVE_VERSION,character:j?liveCharacter(j):base.character,journey:j?{version:JOURNEY_VERSION,simulationCutover:j.simulationCutover??0,startLocationRollVersion:j.startLocationRollVersion??0,legacyRolls:j.rolls.slice(0,j.legacyCutover),rolls:j.rolls.slice(j.legacyCutover)}:null};
 }
 function upgradeLegacy(history,rolls){
  const j=legacy.loadDocument({game:'Grand Line Origins',schemaVersion:2,history,journey:{version:1,rolls}}).journey;
- j.version=JOURNEY_VERSION;j.legacyCutover=j.rolls.length;j.legacyPending=!!j.pending;j.simulationCutover=0;initializeStory(j);ensureSimulation(j);return j;
+ j.version=JOURNEY_VERSION;j.legacyCutover=j.rolls.length;j.legacyPending=!!j.pending;j.simulationCutover=0;j.startLocationRollVersion=0;j.startLocationResolved=true;initializeStory(j);ensureSimulation(j);return j;
 }
 export function loadDocument(doc){
  if(!doc||doc.game!=='Grand Line Origins'||![1,2,SAVE_VERSION].includes(doc.schemaVersion))throw new Error('This is not a supported Grand Line Origins save.');
@@ -340,6 +346,8 @@ export function loadDocument(doc){
  const old=doc.journey.legacyRolls;
  if(doc.journey.version!==JOURNEY_VERSION||!Array.isArray(doc.journey.rolls)||!Array.isArray(old)||doc.journey.rolls.length+old.length>20000)throw new Error('Invalid journey save.');
  journey=old.length?upgradeLegacy(history,old):createJourney(history);
+ const startVersion=Number.isInteger(doc.journey.startLocationRollVersion)?doc.journey.startLocationRollVersion:0;
+ if(!old.length){journey.startLocationRollVersion=startVersion;journey.startLocationResolved=startVersion===0;}
  const hasSimulationCutover=Number.isInteger(doc.journey.simulationCutover)&&doc.journey.simulationCutover>=0&&doc.journey.simulationCutover<=doc.journey.rolls.length;
  journey.simulationCutover=hasSimulationCutover?doc.journey.simulationCutover:doc.journey.rolls.length;
  if(journey.legacyPending&&doc.journey.rolls.length)throw new Error('Finish the saved legacy chapter before adding new story rolls.');

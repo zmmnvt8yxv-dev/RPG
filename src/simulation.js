@@ -1,5 +1,6 @@
 import {CANON,PLACES} from './story-data.js';
 import {eras} from './engine.js';
+import {WORLD_LOCATIONS,worldLocationOf,mapDangerFor,legacyRegionIndex} from './world-map.js';
 
 const clamp=(n,min,max)=>Math.min(max,Math.max(min,n));
 const round1=n=>Math.round(n*10)/10;
@@ -45,10 +46,7 @@ function factionKind(faction=''){
  if(/hunter/i.test(faction))return 'hunter';
  return 'civilian';
 }
-function locationTier(j){
- const place=PLACES.find(p=>p[0]===j.story?.location);
- return place?.[1]??0;
-}
+function locationTier(j){return legacyRegionIndex(worldLocationOf(j).r);}
 export function ensureSimulation(j){
  if(!j.simulation){
   const inherited=Number.isFinite(j.danger)?j.danger:0;
@@ -102,6 +100,7 @@ export function effectiveDanger(j,context='general'){
   const law=WORLD_LAWS.find(x=>x.id===id);if(!law)continue;
   base+=kind==='government'?law.governmentDanger:law.outlawDanger;
  }
+ base+=mapDangerFor(j);
  if(context==='combat')base+=.15;
  if(context==='travel')base+=tier*.1;
  return clamp(round1(base),0,5);
@@ -142,11 +141,10 @@ function addLaw(s,seed){
  return law;
 }
 function chooseErasedLocation(j,seed){
- const s=ensureSimulation(j),current=j.story?.location;
- const sameTier=locationTier(j);
- let pool=PLACES.filter(p=>p[0]!==current&&!s.destroyedLocations.includes(p[0])&&p[1]===sameTier);
- if(!pool.length)pool=PLACES.filter(p=>p[0]!==current&&!s.destroyedLocations.includes(p[0]));
- return pool.length?pool[Math.floor(unit(seed)*pool.length)][0]:null;
+ const s=ensureSimulation(j),current=worldLocationOf(j);
+ let pool=WORLD_LOCATIONS.filter(p=>p.id!==current.id&&!p.id.startsWith('settlement_')&&!['sea_gate','landmark'].includes(p.t)&&!s.destroyedLocations.includes(p.n)&&p.r===current.r);
+ if(!pool.length)pool=WORLD_LOCATIONS.filter(p=>p.id!==current.id&&!p.id.startsWith('settlement_')&&!['sea_gate','landmark'].includes(p.t)&&!s.destroyedLocations.includes(p.n));
+ return pool.length?pool[Math.floor(unit(seed)*pool.length)].n:null;
 }
 function choosePirateForExecution(j,seed){
  const era=eras.indexOf(j.character?.era),crewNames=new Set((j.crew||[]).map(c=>c.name));

@@ -4,6 +4,7 @@ import {JOURNEY_VERSION,LIFESPANS,XP_LEVELS,TRACKS,TRAINING_LABELS,EVENTS,EVENT_
 import * as legacy from './journey-v1.js';
 import {CANON,REGIONS,initializeStory,lifeContext,placeOf,dreamOf,dreamReadiness,dreamOutcomePool,canonPool,encounterOf,encounterTones,encounterInstincts,trainingWeights,shapeEvents,travelPool,chapterPremise,encounterStory,rememberEncounter} from './story.js';
 import {ensureSimulation,effectiveDanger,worldEventPool,applyWorldEvent,advanceWorldTime,resolveCrewTurns,crewCombatContribution} from './simulation.js';
+import {worldLocationOf,resolveWorldLocation,routeFromTo,regionLabel,syncWorldLocation} from './world-map.js';
 export const SAVE_VERSION = 3;
 const clamp=(x,min,max)=>Math.min(max,Math.max(min,x));
 const opt=(value,label,weight,note='')=>({value,label,weight,note});
@@ -204,7 +205,7 @@ function settle(j,result){
  const p=j.pending,a=p.picks,e=p.effects,event=p.event;let requestedMonths=event==='timeskip'?Number(a.duration):4;
  const actualMonths=Math.max(0,Math.min(requestedMonths,lifespanFor(j.character.race).limit*12-j.ageMonths));
  p.result=result.label;
- if(event==='travel'){j.story.location=result.value;if(!j.story.visited.includes(result.value))j.story.visited.push(result.value);e.push(`Arrived at ${result.value}, ${REGIONS[placeOf(j)[1]]}.`);}
+ if(event==='travel'){const from=worldLocationOf(j),to=resolveWorldLocation(result.value);if(to){const route=routeFromTo(from.id,to.id);j.story.locationId=to.id;j.story.location=to.n;if(!j.story.visited.includes(to.n))j.story.visited.push(to.n);e.push(route?`Sailed ${from.n} → ${to.n} by ${String(route.u||route.t).replaceAll('_',' ')}${route.d?` in about ${route.d} days`:''}. Route danger ${route.z??'unrated'}.`:`Sailed open water from ${from.n} to ${to.n}.`);e.push(`Arrived in ${regionLabel(to.r)} · ${to.f==='neutral'?'neutral waters':String(to.f).replaceAll('_',' ')}.`);}else{j.story.location=result.value;if(!j.story.visited.includes(result.value))j.story.visited.push(result.value);}}
  if(event==='dream'){
  const d=dreamOf(j);
  if(result.value==='commission'){j.character.faction='Marine';j.bounty=0;j.group='Marine training unit';j.groupSupport=3;e.push('Your new Marine path begins with training, not a high rank.');}

@@ -28,11 +28,11 @@ export function lifeContext(j){
  reasons.push(`Your dream favors ${dreamOf(j).focus.join(', ')}.`);reasons.push(dangerExplanation(j));
  return {age,relative,stage,young,elder,freshFruit,focus,reasons};
 }
-const aliases={luffy:['Luffy'],zoro:['Zoro'],sanji:['Sanji'],whitebeard:['Whitebeard'],ace:['Ace'],law:['Law'],garp:['Garp']};
+const aliases={robin:['Robin'],chopper:['Chopper'],dragon:['Dragon'],luffy:['Luffy'],zoro:['Zoro'],sanji:['Sanji'],whitebeard:['Whitebeard'],ace:['Ace'],law:['Law'],garp:['Garp']};
 export function canonPool(j,event){
  const era=eras.indexOf(j.character.era),region=placeOf(j)[1],power=combatPower(j);
  const used=new Set(j.crew.filter(c=>c.canon).map(c=>c.name));
- return CANON.filter(c=>c.eras.includes(era)&&!j.story.dead.includes(c.id)&&!used.has(c.name)&&!(aliases[c.id]||[]).some(n=>used.has(n))&&c.regions.includes(region)).filter(c=>{
+ return CANON.filter(c=>(!c.expansion||j.rolls.length-(j.legacyCutover||0)>=(j.sagaCutover||0))&&c.eras.includes(era)&&!j.story.dead.includes(c.id)&&!used.has(c.name)&&!(aliases[c.id]||[]).some(n=>used.has(n))&&c.regions.includes(region)).filter(c=>{
  if(event==='mentor')return c.mentor.length>0||c.kind==='mentor';
  if(c.crew===j.group||c.crew.split(' / ')[0]===j.group)return false;
  return event==='marines'?c.kind==='marine':event==='hunters'?c.kind==='hunter':event==='revolutionaries'?c.kind==='revolutionary':event==='duel'?['pirate','marine','hunter'].includes(c.kind):c.kind==='pirate';
@@ -87,6 +87,8 @@ export function shapeEvents(j,base){
  if(life.young){if(['training','mentor'].includes(id)){w*=1.7;why.push('A young adventurer has much to learn.');}}
  if(life.elder){if(['training','spar','duel'].includes(id)){w*=.2;why.push('You favor experience over physical grinding.');}if(['reflection','teaching','homecoming','recovery','leadership','dream'].includes(id)){w*=2.5;why.push('Later life brings different priorities.');}}
  if(j.injury>=2){if(['recovery','quiet'].includes(id)){w*=4;why.push('Your injuries need attention.');}if(['training','spar','duel','travel'].includes(id))w*=.35;}
+ if(j.story.refuges?.includes(j.story.location)&&['recovery','rescue','homecoming'].includes(id)){w*=1.7;why.push('A refuge you established supports this chapter.');}
+ if(j.story.archives?.length&&['reflection','dream'].includes(id)){w*=1+Math.min(3,j.story.archives.length)*.15;why.push('Your preserved archives support research.');}
  const recent=j.log.slice(-4).filter(e=>e.event===id).length;if(recent){w*=.35**recent;why.push('A recent chapter covered this; variety gets more weight.');}
  if(id==='dream'&&j.story.dreamProgress===4){w*=.4;why.push('Your dream is fulfilled; this is now your legacy.');}
  return {...o,label:id==='training'&&life.freshFruit?'Get your new power under control':id==='dream'?`Pursue your dream · ${dream.theme}`:id==='reflection'&&life.elder?'Set your affairs and memories in order':o.label,weight:Math.max(.01,w),note:why.join(' ')||'A possibility along your current path.'};

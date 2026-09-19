@@ -1,0 +1,21 @@
+import {writeFileSync} from 'node:fs';
+import {SAGAS,EFFECTS} from '../src/sagas.js';
+import {CANON} from '../src/story-data.js';
+import {eras} from '../src/engine.js';
+const paths=(s,node='opening')=>s.nodes[node].edges.reduce((n,e)=>n+(e.next?paths(s,e.next):1),0);
+const lines=['# The saga atlas','',`18 sagas · 72 scenes · 216 authored outcome edges · ${SAGAS.reduce((n,s)=>n+paths(s),0)} complete paths.`,'',
+'Generated from the playable data by `npm run docs:sagas`. Each arrow is a real wheel result. The wheel chooses the response; the player does not click a tactical choice. Branches reconverge with different evidence, trust, injuries, money and relationships, so reaching the same scene need not produce the same odds.','',
+'Each scene is one four-month chapter. Saga selection adds no time. Ordinary chapters can interrupt the thread. Site-specific sagas pause away from their mapped locations. Era filters are starting-era snapshots; this is an alternate chronology, not a calendar reconstruction. Captivity overrides the horizon and death ends the journey.','',
+'Canon anchors are short sourced summaries. All player missions, dialogue-free premises, probabilities, mechanical rewards and endings are original fan fiction. Coverage extends through Egghead and the early Elbaph library material (chapters 1133–1134); it does not claim to model every subsequent manga revelation. Unrevealed lore is not filled in as fact.','',
+'## Consequences','', '| Outcome family | Persistent effect |','| --- | --- |',...Object.entries(EFFECTS).map(([id,f])=>`| ${id} | ${f.label} |`),'',
+'Practice and relationship gains are capped by the existing tracks. Spending never creates debt. A supply branch with insufficient funds becomes less likely and spends only available berries. Government heat is a 0–10 saga-risk modifier; it is separate from the existing world-danger simulation. A saga reputation change concerns its listed cast without claiming a face-to-face meeting.','',
+'## Catalog','', '| Saga | Places | Starting eras |','| --- | --- |',...SAGAS.map(s=>`| [${s.title}](#${s.id.replaceAll('_','-')}) | ${s.places.join(', ')||'Any sea'} | ${s.eras.map(i=>eras[i]).join(', ')} |`),''];
+for(const s of SAGAS){lines.push(`<a id="${s.id.replaceAll('_','-')}"></a>`,`## ${s.title}`,'',`**Canon anchor:** ${s.anchor}${s.source?` [Source](${s.source}).`:' Original side story.'}`,'',`**Connected cast:** ${s.cast.map(id=>CANON.find(c=>c.id===id).name).join(', ')||'Original local characters'}.`,'',`**Where:** ${s.places.join(', ')||'Any mapped sea'}. **Starting eras:** ${s.eras.map(i=>eras[i]).join(', ')}.`,'','```mermaid','flowchart TD');
+ for(const [id,n] of Object.entries(s.nodes)){lines.push(`  ${id}["${n.title.replaceAll('"',"'")}"]`);for(const e of n.edges)lines.push(`  ${id} -->|"${e.label.replaceAll('"',"'")}"| ${e.next||`${id}_${e.id}["Ending: ${e.effect}"]`}`);}
+ lines.push('```','');for(const n of Object.values(s.nodes)){lines.push(`### ${n.title}`,'',n.text,'','| Wheel result | What happens | Next scene | Mechanical consequence |','| --- | --- | --- | --- |');for(const e of n.edges)lines.push(`| ${e.label} | ${e.detail} | ${e.next?s.nodes[e.next].title:'Permanent ending'} | ${EFFECTS[e.effect].label} |`);lines.push('');}
+}
+lines.push('## Source notes','',
+'Official ONE PIECE story summaries supply the broad arc anchors. The Elbaph library entry additionally references Shueisha volume 112, which lists chapter 1134, and [the official Robin/Saul reunion episode](https://one-piece.com/anime/80333/index.html). The [official story index](https://one-piece.com/story/index.html) identifies the current arc. Links were researched on 2026-09-19. The episode and volume numbers are distinct.','',
+'The original cast remains a curated starting-era snapshot: later deaths, crew transfers, and power developments are not automatically simulated. Saga required-cast deaths recorded in the player’s alternate timeline block future saga selection. New cast ratings and all odds are game balance, not official power scaling.','');
+writeFileSync(new URL('../docs/SAGA_ATLAS.md',import.meta.url),lines.join('\n'));
+console.log(`Generated atlas: ${SAGAS.length} sagas, ${SAGAS.reduce((n,s)=>n+paths(s),0)} complete paths`);

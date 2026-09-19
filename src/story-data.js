@@ -81,6 +81,23 @@ export const CANON=[
  character('sabo','Sabo','Revolutionary Army','revolutionary',[3],[1,2],103,3,'protective','Dragon-claw martial arts','A revolutionary officer asks who truly benefits from the island’s unrest.', ['haki_armament','fightingMastery']),
  character('koala','Koala','Revolutionary Army','revolutionary',[3],[1,2],48,8,'warm','Fish-man Karate','A revolutionary instructor is quietly training a group of volunteers.', ['fightingMastery']),
 ];
+// Added cast is gated during historical save replay by sagaCutover.
+CANON.push(...[
+ character('robin','Nico Robin','Straw Hat Pirates','pirate',[2,3],[1,2],66,8,'practical','Flower-Flower power and archaeology','An archaeologist asks where your old map was found, not what it is worth.', ['battleIQ']),
+ character('chopper','Tony Tony Chopper','Straw Hat Pirates','pirate',[2,3],[1,2],48,10,'protective','Human-Human Zoan and medicine','A doctor begins treating an injured stranger before anyone asks for payment.', ['battleIQ']),
+ character('franky','Franky','Straw Hat Pirates','pirate',[2,3],[1,2],65,8,'warm','Cyborg engineering and shipwright craft','A shipwright notices a dangerous weakness in your hull and reaches for his tools.', ['battleIQ']),
+ character('brook','Brook','Straw Hat Pirates','pirate',[2,3],[1,2],58,8,'warm','Revive-Revive power, music and fencing','A skeletal musician recognizes a melody that has crossed several generations.', ['weapon']),
+ character('vivi','Nefertari Vivi','Alabasta royal household','mentor',[2,3],[1],28,9,'protective','Diplomacy and peacock slashers','A princess listens to the water carriers before deciding whom to trust.', ['battleIQ']),
+ character('lucci','Rob Lucci','Cipher Pol','marine',[2,3],[1,2],93,4,'dutiful','Leopard Zoan and Six Powers','A quiet government agent knows more about your cargo than the harbor master does.'),
+ character('bonney','Jewelry Bonney','Bonney Pirates','pirate',[2,3],[1,2],70,6,'protective','Age-Age power','A hungry captain is searching for answers about her father and mistrusts official explanations.'),
+ character('kuma','Bartholomew Kuma','Revolutionary Army / government weapon','revolutionary',[2,3],[1,2],107,2,'protective','Paw-Paw power','A towering figure appears beside a ruined chapel carrying a history few witnesses understand.'),
+ character('vegapunk','Dr. Vegapunk','Egghead research team','mentor',[3],[2],24,5,'practical','Brain-Brain power and scientific research','A scientist wants your observations of a coastal current, including the results that seem inconvenient.', ['battleIQ']),
+ character('yamato','Yamato','Wano allies','pirate',[3],[2],105,3,'protective','Mythical wolf Zoan and kanabo','A warrior carries a journal full of longing for a world beyond the island.', ['haki_armament','fightingMastery']),
+ character('kinemon','Kin’emon','Kozuki retainers','pirate',[3],[2],76,6,'dutiful','Foxfire swordsmanship and Garb-Garb power','A samurai asks whether your promise will survive when keeping it becomes expensive.', ['weapon','fightingMastery']),
+ character('dragon','Monkey D. Dragon','Revolutionary Army','revolutionary',[1,2,3],[0,1,2],130,1,'practical','Revolutionary leadership; combat rating is an authored estimate','A revolutionary leader studies the cost of an uprising to the people who must live through it.', ['battleIQ']),
+ character('perona','Perona','Thriller Bark / independent','pirate',[2,3],[1,2],53,7,'proud','Hollow-Hollow power','A ghostly scout complains about your hospitality while quietly checking the approaching ships.'),
+ character('bartolomeo','Bartolomeo','Barto Club','pirate',[3],[1,2],63,7,'warm','Barrier-Barrier power','An excitable captain offers a protective wall and a very long story about his heroes.'),
+].map(c=>({...c,expansion:true})));
 export const DREAMS={
  'Find the One Piece':{theme:'The last island',focus:['island','travel','dream','mentor'],skill:'battleIQ',steps:['Trace a credible lead to the Road Poneglyphs','Follow a lead to a first Road Poneglyph rubbing','Secure a route assembled from the remaining rubbings','Sail to Laugh Tale and discover the One Piece'],epic:true},
  'Chart every sea':{theme:'An atlas without blank spaces',focus:['travel','island','dream'],skill:'battleIQ',steps:['Complete a chart of your home waters','Map a dangerous Grand Line passage','Chart an unexplored New World route','Publish an atlas spanning every sea']},

@@ -2,8 +2,9 @@ import {options,fruits,swords,firstNames,surnames} from './data.js';
 import {nextStep,values,weightedPick,probability,validateHistory,characterDocument,fullName} from './engine.js';
 import {JOURNEY_VERSION,LIFESPANS,XP_LEVELS,TRACKS,TRAINING_LABELS,EVENTS,EVENT_BY_ID,COMBAT_EVENTS,THREATS,INSTINCTS,WORLD_EVENTS,ROLES,TREASURES,OUTCOME_NOTES} from './journey-data.js';
 import * as legacy from './journey-v1.js';
-import {CANON,REGIONS,initializeStory,lifeContext,placeOf,dreamOf,dreamReadiness,dreamOutcomePool,canonPool,encounterOf,encounterTones,encounterInstincts,trainingWeights,shapeEvents,travelPool,chapterPremise,encounterStory,rememberEncounter} from './story.js';
-import {ensureSimulation,effectiveDanger,worldEventPool,applyWorldEvent,advanceWorldTime,resolveCrewTurns,crewCombatContribution} from './simulation.js';
+import {CANON,REGIONS,initializeStory,lifeContext,placeOf,dreamOf,dreamReadiness,dreamOutcomePool,canonPool,encounterOf,encounterTones,encounterInstincts,trainingWeights,shapeEvents,travelPool,travelRoute,chapterPremise,encounterStory,rememberEncounter} from './story.js';
+import {ensureSimulation,effectiveDanger,worldEventPool,applyWorldEvent,advanceWorldTime,resolveCrewTurns,crewCombatContribution,routeDangerScore} from './simulation.js';
+import {worldLocation,regionName} from './world-data.js';
 export const SAVE_VERSION = 3;
 const clamp=(x,min,max)=>Math.min(max,Math.max(min,x));
 const opt=(value,label,weight,note='')=>({value,label,weight,note});
@@ -117,7 +118,20 @@ export function nextJourneyStep(j){
  const odds=combatOdds(j,a.opponent,a.instinct);
  return make('resolution',`${c.name}: one encounter, one outcome`,odds.options,`${c.crew} · ${c.style}. Your rating ${odds.power} vs ${odds.enemy}. ${c.style.includes('Logia')&&!('haki_armament' in j.skills)?'Without Armament, hitting a Logia is harder. ':''}Attacking impulses cannot erase a huge power gap.`,{baseOptions:odds.base,modifier:odds.modifier});
  }
- if(event==='travel')return make('destination','Which shore calls you next?',travelPool(j),'Nearby waters are common; stronger, prepared travelers are more likely to push onward.');
+ if(event==='travel'){
+  if(s=need('destination','Where does the map let you go?',travelPool(j),'Authored QGIS routes are used where available. Blue Sea and New World gaps use nearby mapped coordinates without crossing regions.'))return s;
+  const route=travelRoute(j,a.destination),dest=worldLocation(a.destination);
+  if(!route||!dest)return make('travelResult','The route disappears from the chart',options([['abort','Remain where you are',1]]),'World changes can invalidate a route before departure.');
+  const danger=routeDangerScore(route,j.character.faction),canSwim=j.character.devilFruit!=='Yes',allies=j.crew.length+j.groupSupport;
+  const death=(.5+danger*.7+(canSwim?0:1.2))/(1+Math.min(allies,6)*.15);
+  return make('travelResult',`Crossing to ${dest.name}`,pool([
+   ['safe','A clean passage',62-danger*4],
+   ['rough','Rough seas, but you make port',20+danger*2],
+   ['delay','Currents and trouble delay the voyage',12+danger],
+   ['injured','The crossing leaves you injured',4+danger*1.2],
+   ['death','The route claims your life',death],
+  ]),`${regionName(dest)} · ${route.type.replaceAll('_',' ')} · about ${Math.max(1,Math.round(route.days||1))} day${Math.round(route.days||1)===1?'':'s'} · route danger ${danger}/5.`);
+ }
  if(event==='dream'){
  const d=dreamOf(j),r=dreamReadiness(j);
  return make('dreamResult',j.story.dreamProgress>=4?'A fulfilled dream can still change lives':d.steps[j.story.dreamProgress],dreamOutcomePool(j),r.ready?'Your experience has put this milestone within reach. Fate decides whether the work pays off.':`Still needed: ${r.needs.join('; ')}. A useful lead can be found while you prepare.`);
@@ -201,10 +215,27 @@ function finishEvent(j){
  j.peakPower=Math.max(j.peakPower,combatPower(j));j.pending=null;
 }
 function settle(j,result){
- const p=j.pending,a=p.picks,e=p.effects,event=p.event;let requestedMonths=event==='timeskip'?Number(a.duration):4;
+ const p=j.pending,a=p.picks,e=p.effects,event=p.event;
+ const mappedRoute=event==='travel'?travelRoute(j,a.destination):null;
+ let requestedMonths=event==='timeskip'?Number(a.duration):event==='travel'?Math.max(1,Math.ceil((mappedRoute?.days||1)/30))*(result.value==='delay'?2:1):4;
  const actualMonths=Math.max(0,Math.min(requestedMonths,lifespanFor(j.character.race).limit*12-j.ageMonths));
  p.result=result.label;
- if(event==='travel'){j.story.location=result.value;if(!j.story.visited.includes(result.value))j.story.visited.push(result.value);e.push(`Arrived at ${result.value}, ${REGIONS[placeOf(j)[1]]}.`);}
+ if(event==='travel'){
+  const dest=worldLocation(a.destination);
+  if(result.value==='death')kill(j,`Lost while traveling toward ${dest?.name||'the next shore'}`,e);
+  else if(result.value==='abort')e.push('The route is no longer viable; you remain where you are.');
+  else if(dest){
+   if(result.value==='rough')e.push('The crossing is violent, but your course holds.');
+   if(result.value==='delay')e.push('Bad currents and interruptions stretch the voyage.');
+   if(result.value==='injured')injury(j,2,e);
+   j.story.location=dest.name;j.story.locationId=dest.id;
+   if(!j.story.visited.includes(dest.name))j.story.visited.push(dest.name);
+   if(!Array.isArray(j.story.visitedIds))j.story.visitedIds=[];
+   if(!j.story.visitedIds.includes(dest.id))j.story.visitedIds.push(dest.id);
+   e.push(`Arrived at ${dest.name}, ${regionName(dest)} after about ${Math.max(1,Math.round(mappedRoute?.days||1))} travel days.`);
+   if(dest.id==='settlement_twins_cape'&&!j.simulation.navigation.basicLogPose){j.simulation.navigation.basicLogPose=true;e.push('At Twins Cape, your crew prepares a basic Log Pose for Paradise navigation.');}
+  }
+ }
  if(event==='dream'){
  const d=dreamOf(j);
  if(result.value==='commission'){j.character.faction='Marine';j.bounty=0;j.group='Marine training unit';j.groupSupport=3;e.push('Your new Marine path begins with training, not a high rank.');}
@@ -314,7 +345,7 @@ export function applyJourneyRoll(j,value){
  }
  p.picks[s.key]=value;
  if(s.key==='storedFruit'){p.picks.fruitName=value;p.picks.fruitType=Object.keys(fruits).find(type=>fruits[type].some(f=>f.value===value));return record;}
- const intermediary=['opponent','tone','mentor','instinct','duration','target','trainingInstinct','fruitType','fruitName'];
+ const intermediary=['opponent','tone','mentor','instinct','duration','target','trainingInstinct','fruitType','fruitName','destination'];
  if(intermediary.includes(s.key))return record;
  if(s.key==='awakening'&&value==='yes')return record;
  if(s.key==='recruitResult'&&value==='join')return record;

@@ -13,7 +13,7 @@ export function initializeStory(j){
  }
  const era=eras.indexOf(j.character.era);const knownCrew=CANON.find(c=>c.crew===j.group);
  const region=knownCrew?knownCrew.regions[0]:era<2?1:0;
- const legacyName=j.character.family==='Kozuki'||j.character.family==='Shimotsuki'?'Wano Country':PLACES.find(p=>p[1]===region)[0];
+ const legacyName=j.character.family==='Kozuki'||j.character.family==='Shimotsuki'?'Wano Country':region===1?'Twins Cape':PLACES.find(p=>p[1]===region)[0];
  const loc=worldLocation(legacyName)||worldLocation('Foosha Village');
  const location=loc?.name||legacyName;
  j.story={location,locationId:loc?.id||null,visited:[location],visitedIds:loc?[loc.id]:[],dreamProgress:0,dreamClues:0,milestones:[],relationships:{},dead:[],fruitAcquiredMonth:j.character.devilFruit==='Yes'?j.elapsedMonths:null,mentored:0,legacy:0};
@@ -125,7 +125,8 @@ export function availableTravelRoutes(j){
  const destroyed=new Set(j.simulation?.destroyedLocations||[]);
  const open=r=>!destroyed.has(r.toId)&&hasNavigationGate(j,r);
  const authored=authoredRoutesFrom(here).filter(open);
- const synthetic=syntheticRoutesFrom(here,{limit:8,destroyed:[...destroyed]}).filter(open);
+ const proximityRegions=['east_blue','north_blue','south_blue','west_blue','new_world'];
+ const synthetic=(authored.length===0||proximityRegions.includes(here.region))?syntheticRoutesFrom(here,{limit:8,destroyed:[...destroyed]}).filter(open):[];
  const byDestination=new Map();
  for(const route of [...authored,...synthetic])if(!byDestination.has(route.toId)||byDestination.get(route.toId).synthetic)byDestination.set(route.toId,route);
  return [...byDestination.values()];

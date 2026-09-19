@@ -5,7 +5,7 @@ import {dangerExplanation} from './simulation.js';
 import {worldLocationOf,syncWorldLocation,worldTravelPool,legacyRegionIndex,locationDescription} from './world-map.js';
 export {CANON,PLACES,REGIONS,DREAMS};
 export function initializeStory(j){
- if(j.story)return j;
+ if(j.story){syncWorldLocation(j);return j;}
  const era=eras.indexOf(j.character.era);const knownCrew=CANON.find(c=>c.crew===j.group);
  const region=knownCrew?knownCrew.regions[0]:era<2?1:0;
  const location=j.character.family==='Kozuki'||j.character.family==='Shimotsuki'?'Wano Country':PLACES.find(p=>p[1]===region)[0];

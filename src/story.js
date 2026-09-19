@@ -2,6 +2,7 @@ import {CANON,PLACES,REGIONS,DREAMS} from './story-data.js';
 import {eras} from './engine.js';
 import {combatPower,levelOf,lifespanFor} from './journey-v1.js';
 import {dangerExplanation} from './simulation.js';
+import {worldLocationOf,syncWorldLocation,worldTravelPool,legacyRegionIndex,locationDescription} from './world-map.js';
 export {CANON,PLACES,REGIONS,DREAMS};
 export function initializeStory(j){
  if(j.story)return j;
@@ -9,9 +10,9 @@ export function initializeStory(j){
  const region=knownCrew?knownCrew.regions[0]:era<2?1:0;
  const location=j.character.family==='Kozuki'||j.character.family==='Shimotsuki'?'Wano Country':PLACES.find(p=>p[1]===region)[0];
  j.story={location,visited:[location],dreamProgress:0,dreamClues:0,milestones:[],relationships:{},dead:[],fruitAcquiredMonth:j.character.devilFruit==='Yes'?j.elapsedMonths:null,mentored:0,legacy:0};
- return j;
+ syncWorldLocation(j);return j;
 }
-export const placeOf=j=>PLACES.find(p=>p[0]===j.story.location)||PLACES[0];
+export const placeOf=j=>{const loc=worldLocationOf(j);return [loc.n,legacyRegionIndex(loc.r),locationDescription(loc)];};
 export const dreamOf=j=>DREAMS[j.character.dream]||DREAMS['Protect a found family'];
 export function lifeContext(j){
  const age=j.ageMonths/12,relative=age/lifespanFor(j.character.race).onset*70;
@@ -73,6 +74,7 @@ export function shapeEvents(j,base){
  const life=lifeContext(j),dream=dreamOf(j);
  return base.filter(o=>{
  if(o.value==='betrayal')return canonPool(j,'pirates').length;
+ if(o.value==='travel')return travelPool(j).length>0;
  if(['pirates','marines','hunters','duel','mentor','revolutionaries'].includes(o.value))return canonPool(j,o.value).length;
  if(o.value==='teaching')return life.relative>=45||combatPower(j)>=55;
  if(o.value==='homecoming')return j.elapsedMonths>=24;
@@ -90,9 +92,7 @@ export function shapeEvents(j,base){
  return {...o,label:id==='training'&&life.freshFruit?'Get your new power under control':id==='dream'?`Pursue your dream · ${dream.theme}`:id==='reflection'&&life.elder?'Set your affairs and memories in order':o.label,weight:Math.max(.01,w),note:why.join(' ')||'A possibility along your current path.'};
  });
 }
-export function travelPool(j){
- const region=placeOf(j)[1],life=lifeContext(j),destroyed=new Set(j.simulation?.destroyedLocations||[]);return PLACES.filter(p=>p[0]!==j.story.location&&!destroyed.has(p[0])&&p[1]<=Math.min(2,region+1)).map(([value,r,description])=>({value,label:`${value} · ${REGIONS[r]}`,weight:(r===region?12:r>region?(life.freshFruit?1:combatPower(j)>35?14:4):3)*(j.story.visited.includes(value)?.3:1),note:description}));
-}
+export function travelPool(j){return worldTravelPool(j);}
 export function dreamReadiness(j){
  const d=dreamOf(j),p=j.story.dreamProgress;const needs=[];
  if(p>=4)return {ready:false,needs:['Your dream is already fulfilled.']};

@@ -24,8 +24,11 @@ export function nextStep(history) {
  if(s=pending('race','Which people do you belong to?','Origins',races,'Population-inspired estimates: humans dominate; Lunarian and Buccaneer outcomes are exceptionally rare.'))return s;
  if(s=pending('bloodline','A famous family in your past?','Origins',yesNo(10),'Famous bloodlines are uncommon but now meaningfully affect starting Haki, combat styles and attributes.'))return s;
  if(a.bloodline==='Yes') {
- const pool=families.filter(f=>f.value==='Jaguar'?a.race==='Giant':f.value==='Charlotte'?a.race!=='Giant':a.race==='Human');
- if(s=pending('family','Which family is your bloodline?','Origins',pool.length?pool:options([['Original ancestral clan',1,'A generated family appropriate to your people; canon offers no suitable named family in this catalog.']]),'Race-compatible curated families. Rare-race histories without a supported named family use an original clan.'))return s;
+ let pool;
+ if(a.race==='Human')pool=families.filter(f=>f.value!=='Jaguar');
+ else if(a.race==='Giant')pool=[...families.filter(f=>f.value==='Jaguar').map(f=>({...f,weight:70})),...options([['Original ancestral clan',30,'A notable original Giant clan; no fixed family bonus beyond Giant physiology.']])];
+ else pool=[...families.filter(f=>f.value==='Charlotte').map(f=>({...f,weight:25})),...options([['Original ancestral clan',75,'A notable original clan appropriate to your people; no fixed family bonus beyond racial heritage.']])];
+ if(s=pending('family','Which family is your bloodline?','Origins',pool,'Race-compatible family histories. Humans use the named-family table; other peoples usually receive an original notable clan rather than being forced into one canon family.'))return s;
  }
  if(s=pending('willD','Do you carry the initial D.?','Origins',dFamilies.includes(a.family)?options([['Yes',1]]):yesNo(0.5),'D. denotes a mysterious inherited identity, not a stat bonus. Known D. families force Yes; other outcomes are alternate-lineage fiction.'))return s;
  const ages=a.race==='Giant'?[[20,8],[35,20],[60,30],[90,25],[140,15],[220,2]]:[[16,12],[19,24],[24,27],[32,20],[45,12],[60,4],[75,1]];

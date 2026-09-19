@@ -1,7 +1,7 @@
-import {options,races,families,dFamilies,mastery,hakiMastery,fruitMastery,stats,fruits,swords,crewCatalog,characters,firstNames,surnames,dreams} from './data.js';
+import {options,races,families,dFamilies,mastery,hakiMastery,fruitMastery,stats,fruits,swords,crewCatalog,characters,firstNames,surnames,dreams,heritageProfile} from './data.js';
 export const VERSION = 1;
 export const eras = ['Roger’s final voyage','Early Great Pirate Era','Summit War opening','New World opening'];
-const yesNo = n => options([['Yes',n],['No',100-n]]);
+const yesNo = n => {const p=Math.max(.001,Math.min(99.999,n));return options([['Yes',p],['No',100-p]]);};
 const step = (id,label,group,pool,note='') => ({id,label,group,options:pool,note});
 export function weightedPick(pool, random=Math.random) {
  if(!pool.length || pool.some(o=>!Number.isFinite(o.weight)||o.weight<=0)) throw new Error('Invalid outcome pool');
@@ -22,7 +22,7 @@ export function nextStep(history) {
  let s;
  if(s=pending('era','When does your story begin?','Origins',options(eras.map((e,i)=>[e,[10,15,25,50][i]])),'Era sets the available crews and canon recruits. All journeys diverge from canon at this starting point.'))return s;
  if(s=pending('race','Which people do you belong to?','Origins',races,'Population-inspired estimates: humans dominate; Lunarian and Buccaneer outcomes are exceptionally rare.'))return s;
- if(s=pending('bloodline','A famous family in your past?','Origins',yesNo(5),'A family connection is a story hook, not a guaranteed power boost.'))return s;
+ if(s=pending('bloodline','A famous family in your past?','Origins',yesNo(10),'Famous bloodlines are uncommon but now meaningfully affect starting Haki, combat styles and attributes.'))return s;
  if(a.bloodline==='Yes') {
  const pool=families.filter(f=>f.value==='Jaguar'?a.race==='Giant':f.value==='Charlotte'?a.race!=='Giant':a.race==='Human');
  if(s=pending('family','Which family is your bloodline?','Origins',pool.length?pool:options([['Original ancestral clan',1,'A generated family appropriate to your people; canon offers no suitable named family in this catalog.']]),'Race-compatible curated families. Rare-race histories without a supported named family use an original clan.'))return s;
@@ -39,11 +39,14 @@ export function nextStep(history) {
  if(s=pending('bounty','Your starting bounty','Identity',bounties,'Government bounty measures notoriety, not power. Marines and lawful paths begin without one. Cross Guild bounties are outside this opening-era model.'))return s;
  if(!a.family || a.family==='Original ancestral clan') if(s=pending('surname','Your family name','Identity',options(surnames)))return s;
  if(s=pending('name','Your given name','Identity',options(firstNames),'Your full name combines this result, your family and D. if applicable.'))return s;
- const experienced=Number(a.age)>=24;
- const hakiChance=({Pirate:12,Marine:14,Revolutionary:18,'Bounty hunter':10,Explorer:5,Merchant:2,Civilian:1,'Cipher Pol':35}[a.faction])*(experienced?1:0.5);
- if(s=pending('haki','Have you awakened Haki?','Powers',yesNo(hakiChance),'Awakened at the start, not your lifetime potential. Age and path influence these game odds.'))return s;
+ const experienced=Number(a.age)>=24,heritage=heritageProfile(a);
+ const baseHaki=({Pirate:12,Marine:14,Revolutionary:18,'Bounty hunter':10,Explorer:5,Merchant:2,Civilian:1,'Cipher Pol':35}[a.faction])*(experienced?1:0.5);
+ const hakiChance=Math.min(95,baseHaki+heritage.hakiBonus);
+ const hakiPool=heritage.guaranteedHaki.length?options([['Yes',1,'Your bloodline guarantees a starting Haki affinity in this game.']]):yesNo(hakiChance);
+ if(s=pending('haki','Have you awakened Haki?','Powers',hakiPool,heritage.guaranteedHaki.length?'Your bloodline guarantees Haki. The later Haki-type wheel may add more types, while the inherited type is always added at embarkation.':'Awakened at the start, not your lifetime potential. Age, path and bloodline influence these game odds.'))return s;
  if(a.haki==='Yes') {
- if(s=pending('hakiTypes','Which Haki has awakened?','Powers',options([['Observation',44],['Armament',35],['Observation + Armament',20],['Conqueror’s',0.1],['Observation + Conqueror’s',0.3],['Armament + Conqueror’s',0.2],['Observation + Armament + Conqueror’s',0.4]]),'Conqueror’s appears in 1% of Haki-positive results, not 1% of all characters.'))return s;
+ const hakiTypes=options([['Observation',44],['Armament',35],['Observation + Armament',20],['Conqueror’s',0.1],['Observation + Conqueror’s',0.3],['Armament + Conqueror’s',0.2],['Observation + Armament + Conqueror’s',0.4]]).map(o=>o.value.includes('Conqueror')?{...o,weight:o.weight*heritage.conquerorMultiplier}:o);
+ if(s=pending('hakiTypes','Which Haki has awakened?','Powers',hakiTypes,'Conqueror’s remains rare, but certain bloodlines receive an authored game-weight bonus. Guaranteed inherited Haki types are applied at embarkation.'))return s;
  for(const [key,type] of [['observation','Observation'],['armament','Armament'],['conqueror','Conqueror’s']]) if(a.hakiTypes.includes(type))if(s=pending(`haki_${key}`,`${type} Haki level`,'Powers',hakiMastery,type==='Observation'?'Advanced outcomes allow a future-sight growth hook.':type==='Armament'?'Advanced outcomes allow emission/internal-destruction training hooks.':'Basic control does not imply advanced Conqueror’s coating.'))return s;
  }
  const fruitChance={Pirate:16,Marine:8,Revolutionary:12,'Bounty hunter':8,Explorer:6,Merchant:2,Civilian:1,'Cipher Pol':25}[a.faction];
@@ -55,7 +58,9 @@ export function nextStep(history) {
  }
  let styles=options([['Brawling',26],['Black Leg-inspired kicks',12],['One-sword style',16],['Two-sword style',7],['Three-sword style',2],['Sniper',12],['Staff fighting',8],['Spear fighting',7],['Axe fighting',4],['Rokushiki',1],['Fish-man Karate',5]]);
  if(a.race==='Mink')styles.push(...options([['Electro martial arts',20]]));
- if(s=pending('fightingStyle','How do you fight?','Combat',styles,'Styles imply a training path, not instant access to every named technique. Weapons and movement are adapted to your anatomy.'))return s;
+ const heritageStyles=heritageProfile(a).styles;
+ styles=styles.map(o=>heritageStyles.includes(o.value)?{...o,weight:o.weight*5,note:'Your heritage makes this style especially natural; it is also retained as a secondary style if another style wins.'}:o);
+ if(s=pending('fightingStyle','How do you fight?','Combat',styles,'Your primary style is rolled normally. Heritage styles are strongly favored and remain available as secondary styles even if another style wins.'))return s;
  if(s=pending('fightingMastery','Fighting mastery','Combat',mastery))return s;
  const weaponCount={'One-sword style':1,'Two-sword style':2,'Three-sword style':3,Sniper:1,'Staff fighting':1,'Spear fighting':1,'Axe fighting':1}[a.fightingStyle]||0;
  const otherWeapons={Sniper:options([['Flintlock pistol',25],['Long rifle',45],['Twin pistols',15],['Slingshot',14],['Kabuto',1]]),'Staff fighting':options([['Oak staff',65],['Iron staff',34],['Clima-Tact',1]]),'Spear fighting':options([['Spear',65],['Trident',30],['Naginata',4],['Murakumogiri',1]]),'Axe fighting':options([['Boarding axe',70],['Great axe',30]])};
@@ -102,7 +107,11 @@ export function validateHistory(input) {
  if(!Array.isArray(input)||input.length>200)throw new Error('Invalid character history');
  const clean=[];
  for(const item of input) {
- const s=nextStep(clean);const o=s?.options.find(o=>o.value===item?.value);
+ const s=nextStep(clean);let o=s?.options.find(o=>o.value===item?.value);
+ if(s?.id==='haki'&&item?.value==='No'&&!o&&heritageProfile(values(clean)).guaranteedHaki.length){
+  clean.push({id:s.id,label:s.label,group:s.group,value:'No',note:'Legacy pre-heritage result preserved; inherited Haki is applied when the journey begins.',chance:Number.isFinite(item.chance)?item.chance:0});
+  continue;
+ }
  if(!s||s.id!==item?.id||!o)throw new Error('This save does not match the current character rules.');
  clean.push({id:s.id,label:s.label,group:s.group,value:o.value,note:o.note||'',chance:probability(s.options,o.value)});
  }

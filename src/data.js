@@ -1,12 +1,71 @@
 // All weights are authored game balance, never canonical census data.
 export const options = rows => rows.map(row => typeof row === 'string' ? {value:row,label:row,weight:1} : {value:row[0],label:row[0],weight:row[1],note:row[2] || ''});
 export const races = options([
- ['Human',8800,'The most common people across the seas.'],['Fish-man',350,'Aquatic breathing and powerful physique; a fruit still removes swimming ability.'],['Merfolk',250,'Aquatic heritage and a tail; fighting styles are adapted to your anatomy.'],['Mink',180,'Electro potential. Sulong requires a full moon and training.'],['Sky Islander',180,'Sky-island heritage; wings do not automatically grant flight.'],['Longarm',70,'Two elbow joints in each arm.'],['Longleg',65,'Long legs and reach.'],['Giant',40,'Enormous size, long lifespan and exceptional baseline strength.'],['Dwarf',35,'Tiny stature, surprising strength and agility.'],['Snakeneck',20,'An elongated neck.'],['Three-eye',8,'A rare third eye; special perception is not automatically awakened.'],['Lunarian',1,'Flame, wing and durability traits. Their use takes practice.'],['Buccaneer',1,'Rare giant-related heritage and a powerful build.']
+ ['Human',7000,'70% of the adventure-biased origin pool. No automatic attribute shifts.'],
+ ['Fish-man',700,'7%. Aquatic breathing and powerful physiology. Heritage: +2 Strength, +1 Durability, +1 Endurance.'],
+ ['Merfolk',500,'5%. Aquatic heritage and exceptional movement. Heritage: +2 Speed, +1 Stamina.'],
+ ['Mink',500,'5%. Electro potential and explosive mobility. Heritage: +2 Speed, +1 Stamina; Electro is an inherited secondary combat style.'],
+ ['Sky Islander',450,'4.5%. Sky-island heritage. Heritage: +1 Speed, +1 Stamina.'],
+ ['Longarm',250,'2.5%. Exceptional reach and leverage. Heritage: +1 Strength, +1 Fighting Mastery.'],
+ ['Longleg',240,'2.4%. Exceptional reach and kicking leverage. Heritage: +1 Strength, +1 Speed.'],
+ ['Giant',130,'1.3%. Enormous physique and longevity. Heritage: +2 Strength, +2 Durability, +1 Endurance.'],
+ ['Dwarf',100,'1%. Tiny stature with extraordinary power and agility. Heritage: +2 Strength, +2 Speed, +1 Stamina.'],
+ ['Snakeneck',60,'0.6%. Unusual reach and awareness. Heritage: +1 Speed, +1 Battle IQ.'],
+ ['Three-eye',35,'0.35%. Rare three-eye heritage. Heritage: +2 Battle IQ.'],
+ ['Lunarian',20,'0.2%. Extremely rare flame-wing lineage. Heritage: +2 Durability, +1 Strength, +1 Speed, +1 Endurance.'],
+ ['Buccaneer',15,'0.15%. Extremely rare giant-related lineage. Heritage: +2 Strength, +2 Durability, +1 Endurance.']
 ]);
 export const families = options([
- ['Monkey',12,'Family connection, not inherited Haki or guaranteed strength.'],['Portgas',7,'A hidden family history; no automatic combat gift.'],['Gol',2,'A dangerous legacy, carrying D.'],['Trafalgar',8,'A concealed D. lineage; medicine is a roleplay hook.'],['Jaguar',5,'A giant family carrying D.'],['Nefertari',10,'Royal ancestry and a concealed D. legacy.'],['Vinsmoke',12,'Royal ties and scientific resources; genetic enhancements are NOT assumed.'],['Shimotsuki',16,'Wano swordsmith and samurai connections; training must be earned.'],['Kozuki',8,'Wano nobility; stone-carving knowledge requires teaching.'],['Donquixote',10,'World Noble ancestry; no automatic authority.'],['Charlotte',10,'A sprawling family; parentage does not guarantee powers.']
+ ['Monkey',14,'Strong-willed D. lineage. Game heritage guarantees Observation Haki and grants +1 Battle IQ, +1 Endurance, +1 Stamina.'],
+ ['Portgas',9,'D. lineage with exceptional resolve. Heritage grants +1 Endurance and +1 Stamina and strongly improves starting Haki odds.'],
+ ['Gol',6,'Extremely rare D. lineage. Game heritage guarantees Conqueror’s Haki and grants +1 Fighting Mastery, +1 Battle IQ, +1 Endurance.'],
+ ['Trafalgar',10,'D. lineage associated here with precision and medicine. Heritage grants +2 Battle IQ and +1 Endurance.'],
+ ['Jaguar',7,'Giant D. lineage. Heritage adds +1 Strength and +1 Durability on top of Giant physiology.'],
+ ['Nefertari',9,'Royal D. lineage. Heritage grants +1 Battle IQ and +1 Stamina.'],
+ ['Vinsmoke',10,'Germa royal lineage. Heritage grants +1 Strength, +1 Durability, +1 Speed and Black Leg-inspired kicks as a secondary style.'],
+ ['Shimotsuki',13,'Wano sword lineage. Heritage grants +1 Fighting Mastery, +1 Speed and One-sword style as a secondary style.'],
+ ['Kozuki',9,'Wano ruling lineage. Heritage grants +1 Fighting Mastery, +1 Durability and Two-sword style as a secondary style.'],
+ ['Donquixote',7,'World Noble lineage. Game heritage guarantees Armament Haki and grants +1 Battle IQ, +1 Fighting Mastery.'],
+ ['Charlotte',6,'A sprawling pirate lineage. Heritage grants +1 Durability, +1 Stamina and strongly improves starting Haki odds.']
 ]);
 export const dFamilies = ['Monkey','Portgas','Gol','Trafalgar','Jaguar','Nefertari'];
+export const RACE_TRAITS={
+ Human:{bonuses:{}},
+ 'Fish-man':{bonuses:{strength:2,durability:1,endurance:1}},
+ Merfolk:{bonuses:{speed:2,stamina:1}},
+ Mink:{bonuses:{speed:2,stamina:1},style:'Electro martial arts'},
+ 'Sky Islander':{bonuses:{speed:1,stamina:1}},
+ Longarm:{bonuses:{strength:1,fightingMastery:1}},
+ Longleg:{bonuses:{strength:1,speed:1}},
+ Giant:{bonuses:{strength:2,durability:2,endurance:1}},
+ Dwarf:{bonuses:{strength:2,speed:2,stamina:1}},
+ Snakeneck:{bonuses:{speed:1,battleIQ:1}},
+ 'Three-eye':{bonuses:{battleIQ:2}},
+ Lunarian:{bonuses:{durability:2,strength:1,speed:1,endurance:1}},
+ Buccaneer:{bonuses:{strength:2,durability:2,endurance:1}},
+};
+export const FAMILY_TRAITS={
+ Monkey:{bonuses:{battleIQ:1,endurance:1,stamina:1},guaranteedHaki:['haki_observation'],hakiBonus:30},
+ Portgas:{bonuses:{endurance:1,stamina:1},hakiBonus:30},
+ Gol:{bonuses:{fightingMastery:1,battleIQ:1,endurance:1},guaranteedHaki:['haki_conqueror'],hakiBonus:60,conquerorMultiplier:12},
+ Trafalgar:{bonuses:{battleIQ:2,endurance:1},hakiBonus:10},
+ Jaguar:{bonuses:{strength:1,durability:1},style:'Brawling',hakiBonus:15},
+ Nefertari:{bonuses:{battleIQ:1,stamina:1},hakiBonus:15},
+ Vinsmoke:{bonuses:{strength:1,durability:1,speed:1},style:'Black Leg-inspired kicks'},
+ Shimotsuki:{bonuses:{fightingMastery:1,speed:1},style:'One-sword style',hakiBonus:15},
+ Kozuki:{bonuses:{fightingMastery:1,durability:1},style:'Two-sword style',hakiBonus:20},
+ Donquixote:{bonuses:{battleIQ:1,fightingMastery:1},guaranteedHaki:['haki_armament'],hakiBonus:35},
+ Charlotte:{bonuses:{durability:1,stamina:1},hakiBonus:30,conquerorMultiplier:2.5},
+};
+export function heritageProfile(character={}){
+ const race=RACE_TRAITS[character.race]||RACE_TRAITS.Human,family=FAMILY_TRAITS[character.family]||{};
+ const bonuses={...race.bonuses};
+ for(const [key,value] of Object.entries(family.bonuses||{}))bonuses[key]=(bonuses[key]||0)+value;
+ const styles=[race.style,family.style].filter(Boolean);
+ const guaranteedHaki=[...new Set(family.guaranteedHaki||[])];
+ return {bonuses,styles,guaranteedHaki,hakiBonus:family.hakiBonus||0,conquerorMultiplier:family.conquerorMultiplier||1};
+}
+
 export const mastery = options([['Untrained',35],['Novice',35],['Practiced',20],['Expert',8],['Master',1.8],['Legendary',0.2]]);
 export const hakiMastery = options([['Newly awakened',57],['Basic control',30],['Skilled',11],['Advanced technique',1.9],['World-class',0.1]]);
 export const fruitMastery = options([['Just eaten',40],['Basic control',35],['Creative techniques',18],['Expert control',6],['Awakened',1]]);

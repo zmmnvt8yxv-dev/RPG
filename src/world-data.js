@@ -17,7 +17,12 @@ const locationRows=[
 const routeRows=[...ROUTES_PARADISE,...ROUTES_REVERSE];
 export const WORLD_REGIONS=REGION_ROWS.map(([id,name,type])=>({id,name,type}));
 export const WORLD_LOCATIONS=locationRows.map(([id,name,region,type,faction,climate,importance,x,y,magnetic,parent])=>({id,name,region,type,faction,climate,importance,x,y,magnetic,parent}));
-export const WORLD_ROUTES=routeRows.map(([id,fromId,toId,type,days,danger,unlock,oneWay,requiresShip,gate,barrier,outcomeChance,factionAccess,group])=>({id,fromId,toId,type,days,danger,unlock,oneWay,requiresShip,gate,barrier,outcomeChance,factionAccess,group}));
+const authoredRoutes=routeRows.map(([id,fromId,toId,type,days,danger,unlock,oneWay,requiresShip,gate,barrier,outcomeChance,factionAccess,group])=>({id,fromId,toId,type,days,danger,unlock,oneWay,requiresShip,gate,barrier,outcomeChance,factionAccess,group,authored:true}));
+export const SPECIAL_ROUTES=[
+ {id:'game:sabaody-fishman',fromId:'island_sabaody_archipelago',toId:'island_fish_man_island',type:'coated_descent',days:3,danger:5,unlock:'ship_coating',oneWay:false,requiresShip:true,gate:'',barrier:'barrier_red_line_10',outcomeChance:.35,factionAccess:'public',group:'Red Line passage',authored:false},
+ {id:'game:fishman-newworld',fromId:'island_fish_man_island',toId:'island_g_1',type:'red_line_passage',days:3,danger:5,unlock:'new_world_passage',oneWay:false,requiresShip:true,gate:'',barrier:'barrier_red_line_10',outcomeChance:.35,factionAccess:'public',group:'New World gateway',authored:false},
+];
+export const WORLD_ROUTES=[...authoredRoutes,...SPECIAL_ROUTES];
 export const WORLD_DANGER_ZONES=DANGER_ROWS.map(([id,name,type,region,severity,radius,x,y])=>({id,name,type,region,severity,radius,x,y}));
 export const WORLD_BARRIERS=BARRIER_ROWS.map(([id,type,passable,travelCost,encounterChance,bypass])=>({id,type,passable,travelCost,encounterChance,bypass}));
 export {WORLD_MAP_BOUNDS};
@@ -110,4 +115,4 @@ export function staticDangerAt(ref){
  return n;
 }
 export function regionName(ref){return worldRegion(ref)?.name||'Unknown waters';}
-export const WORLD_COUNTS={locations:WORLD_LOCATIONS.length,routes:WORLD_ROUTES.length,regions:WORLD_REGIONS.length,dangerZones:WORLD_DANGER_ZONES.length};
+export const WORLD_COUNTS={locations:WORLD_LOCATIONS.length,routes:WORLD_ROUTES.length,authoredRoutes:authoredRoutes.length,gameBridgeRoutes:SPECIAL_ROUTES.length,regions:WORLD_REGIONS.length,dangerZones:WORLD_DANGER_ZONES.length};

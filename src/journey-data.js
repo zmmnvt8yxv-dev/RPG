@@ -21,7 +21,7 @@ export const TRAINING_LABELS = {
  battleIQ:'Battle IQ',strength:'Strength',durability:'Durability',speed:'Speed',endurance:'Endurance',stamina:'Stamina',
 };
 export const EVENTS = [
- ['dream','Pursue your dream',13],['travel','Set sail for another island',10],['recovery','Recover from the journey',5],['reflection','Reflect and plan',4],['teaching','Pass on your experience',5],['homecoming','A call from home',3],['leadership','Your companions need direction',5],['revolutionaries','Meet the Revolutionaries',4],['training','Dedicated training',18],['quiet','Quiet months',12],['world','World event',7],
+ ['dream','Pursue your dream',13],['travel','Travel through the mapped world',10],['recovery','Recover from the journey',5],['reflection','Reflect and plan',4],['teaching','Pass on your experience',5],['homecoming','A call from home',3],['leadership','Your companions need direction',5],['revolutionaries','Meet the Revolutionaries',4],['training','Dedicated training',18],['quiet','Quiet months',12],['world','World event',7],
  ['pirates','Encounter pirates',9],['marines','Encounter Marines',6],['hunters','Bounty hunters',3],
  ['spar','Spar with colleagues',7],['fruit','Discover a Devil Fruit',2],['haki','A test of will',3],
  ['treasure','Hidden treasure',6],['weapon','Weapon cache',4],['recruit','A new companion',4],

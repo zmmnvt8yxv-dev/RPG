@@ -1,3 +1,5 @@
+import {renderSagaJournal} from './saga-view.js';
+import {SAGA_BY_ID} from './sagas.js';
 import {nextStep,roll,values,fullName,probability} from './engine.js';
 import {createJourney,nextJourneyStep,applyJourneyRoll,saveDocument,loadDocument,liveCharacter,combatPower,ageLabel,money,levelOf,trackFor,skillLabel,lifespanFor} from './journey.js';
 import {XP_LEVELS,EVENT_BY_ID} from './journey-data.js';
@@ -71,14 +73,17 @@ function renderStory(){
  $('storyCompass').innerHTML=`<div class="compass-heading"><span class="eyebrow">${esc(REGIONS[placeOf(j)[1]])} / ${esc(j.story.location)}</span><span class="life-stage">${esc(life.stage)}</span></div><h2>${esc(life.focus)}</h2><p>${esc(j.character.dream)} · ${j.story.dreamProgress}/4 milestones</p><div class="dream-steps">${d.steps.map((step,i)=>`<span class="${i<j.story.dreamProgress?'fulfilled':i===j.story.dreamProgress?'next-goal':''}" title="${esc(step)}"><b>${i<j.story.dreamProgress?'✓':i+1}</b>${esc(step)}</span>`).join('')}</div><details><summary>Why your story is heading this way</summary><ul>${life.reasons.map(n=>`<li>${esc(n)}</li>`).join('')}</ul>${!r.ready&&j.story.dreamProgress<4?`<p>Next milestone still needs ${esc(r.needs.join('; '))}.</p>`:''}<p>${j.story.visited.length} islands visited · ${j.story.dreamClues} useful leads · ${j.story.legacy} legacy moments</p></details>`;
  const bonds=Object.entries(j.story.relationships).map(([id,bond])=>({person:CANON.find(c=>c.id===id),...bond})).filter(b=>b.person);
  if(bonds.length)$('storyCompass').innerHTML+=`<div class="bonds-strip">${bonds.sort((a,b)=>b.last-a.last).slice(0,8).map(b=>`<span class="bond ${j.story.dead.includes(b.person.id)?'fallen':b.score>0?'friend':b.score<0?'rival':''}">${esc(b.person.name)} <small>${j.story.dead.includes(b.person.id)?'Deceased':b.score>0?'Ally':b.score<0?'Grudge':'Acquaintance'}</small></span>`).join('')}</div>`;
+ $('storyCompass').innerHTML+=renderSagaJournal(j);
 }
 function context(s){
+ const saga=SAGA_BY_ID[journey?.pending?.picks.sagaId];
  const c=journey&&CANON.find(c=>c.id===(journey.pending?.picks.opponent||journey.pending?.picks.mentor));
- $('canonEncounter').hidden=!c;
+ $('canonEncounter').hidden=!c&&!saga;
+ if(saga){$('canonEncounter').innerHTML=`<div class="encounter-top"><span>CANON CROSSROADS</span><span>ALTERNATE TIMELINE</span></div><h3>${esc(saga.title)}</h3><p>${esc(saga.anchor)}</p><div class="encounter-details">${saga.cast.map(id=>`<span>${esc(CANON.find(c=>c.id===id)?.name||id)}</span>`).join('')}</div><small>These are the people connected to this story; your choices and their consequences are authored fiction.</small>`;}
  if(c){const bond=journey.story.relationships[c.id];$('canonEncounter').innerHTML=`<div class="encounter-top"><span>CANON ${journey.pending.picks.mentor?'MENTOR':'ENCOUNTER'}</span><span>${esc(c.kind.toUpperCase())}</span></div><div class="encounter-person"><div class="encounter-seal" aria-hidden="true">${esc(c.name.split(' ').filter(n=>n.length>1).map(n=>n[0]).slice(0,2).join(''))}</div><div><h3>${esc(c.name)}</h3><p>${esc(c.crew)}</p></div></div><p class="encounter-description">${esc(encounterStory(journey,c))}</p><div class="encounter-details"><span>${esc(c.style)}</span><span>${bond?`${bond.meetings} previous meeting${bond.meetings===1?'':'s'}`:'First meeting'}</span></div>`;}
 
  $('chapterContext').hidden=!journey||!journey.pending;
- if(journey?.pending){const p=journey.pending;$('chapterContext').innerHTML=`<b>CHAPTER ${journey.chapter+1} · ${esc(EVENT_BY_ID[p.event]?.label||'Captivity')}</b>${p.narrative?`<p class="chapter-premise">${esc(p.narrative)}</p>`:''}${p.rolls.map(r=>esc(r.label)).join(' → ')}<br><span>${p.phase==='aging'?`${p.months} months have passed. Final aging check.`:'Follow-up rolls resolve this event; they add no extra time.'}</span>`;}
+ if(journey?.pending){const p=journey.pending;$('chapterContext').innerHTML=`<b>CHAPTER ${journey.chapter+1} · ${esc(EVENT_BY_ID[p.event]?.label||(p.event==='saga'?'A PROMISE BECOMES A SAGA':'Captivity'))}</b>${p.narrative?`<p class="chapter-premise">${esc(p.narrative)}</p>`:''}${p.rolls.map(r=>esc(r.label)).join(' → ')}<br><span>${p.phase==='aging'?`${p.months} months have passed. Final aging check.`:'Follow-up rolls resolve this event; they add no extra time.'}</span>`;}
  $('oddsModifier').hidden=!s?.modifier;
  if(s?.modifier){const m=s.modifier;$('oddsModifier').innerHTML=`<div class="modifier-title">FATE ROLLED · ${esc(m.label)}</div><strong>${esc(m.outcome)}: ${pct(m.before)} → <span class="delta">${pct(m.after)}</span></strong><p>+${(m.after-m.before).toFixed(1)} percentage points. Other outcomes are rebalanced. Fate chose the impulse; your ability limits what it can change.</p>`;}
 }

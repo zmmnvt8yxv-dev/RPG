@@ -9,3 +9,19 @@
 @media(max-width:650px){.story-compass{padding:20px}.compass-heading{align-items:start;flex-direction:column;gap:10px}.story-compass h2{font-size:25px}.dream-steps{grid-template-columns:1fr 1fr;gap:17px}.dream-steps>span{font-size:9px}.canon-encounter{padding:17px}.encounter-person h3{font-size:26px}.encounter-person{gap:12px}.encounter-seal{width:49px;height:49px;flex-basis:49px;font-size:20px}.encounter-description{font-size:11px}.encounter-details{flex-direction:column;gap:5px}.chapter-premise{font-size:14px}.journey-active .hero h1{font-size:29px}.story-compass .eyebrow{font-size:9px}}
 
 .keyboard-hint{text-align:center;margin-top:9px;font-size:8px;letter-spacing:1.2px;color:#879084}.keyboard-hint kbd{display:inline-block;margin:0 4px;padding:3px 7px;border:1px solid #c9cbbd;border-bottom-width:2px;border-radius:4px;background:#f4f0e5;color:var(--ink);font:700 8px var(--sans);letter-spacing:1px}.journey-active .keyboard-hint{color:#7a8677}
+
+/* Branching saga journal: readable on narrow screens and accessible without hover. */
+.saga-journal{margin-top:1.6rem;padding-top:1.4rem;border-top:1px solid var(--line,#d8cdbb)}
+.saga-journal h3{font-size:1.35rem;margin:.6rem 0}.saga-journal details{margin-top:.8rem}
+.saga-journal summary{cursor:pointer;line-height:1.5;padding:.5rem 0}
+.saga-active-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:.6rem}
+.saga-active{display:flex;flex-direction:column;gap:.35rem;border:1px solid #b49b69;border-left:4px solid #a47531;padding:.9rem;background:#fff9eb;color:#292725}
+.saga-active small,.saga-map summary small{display:block;font-size:.75rem;font-weight:400;line-height:1.6}
+.saga-map{border:1px solid #d4c7ae;border-radius:5px;padding:.35rem .8rem;margin:.7rem 0;background:#fffcf4;color:#292725}
+.saga-map summary span{font-weight:700}.saga-map p{font-size:.85rem;line-height:1.65}.saga-anchor{border-left:3px solid #aa884f;padding-left:.7rem}
+.saga-tree{padding-left:1.3rem}.saga-tree>li{padding:.5rem 0 .8rem .5rem;margin:.5rem 0;border-left:2px solid #d4c7ae}
+.saga-tree .current-node{border-left-color:#167462;background:#edf5ee}.saga-tree h4{margin:.3rem 0;font-size:.95rem}
+.saga-tree ul{list-style:none;padding:0}.saga-tree ul li{padding:.65rem .5rem;border-bottom:1px dashed #d4c7ae;line-height:1.5}
+.saga-tree li span,.saga-tree li small{display:block;margin-top:.3rem;font-size:.8rem}.saga-tree li small{color:#665333}
+.saga-journal a{color:#136452;text-decoration:underline}.saga-journal summary:focus-visible{outline:2px solid #167462;outline-offset:3px}
+@media(max-width:600px){.saga-map{padding:.3rem .55rem}.saga-tree{padding-left:1rem}.saga-tree ul li{padding:.6rem .2rem}}

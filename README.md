@@ -71,7 +71,7 @@ The browser key remains `grand-line-origins:v1` so existing saves are found. New
 - **Young and newly powered:** relative youth favors training and mentors. A newly eaten, still-unfamiliar fruit creates a two-year control-learning window: training events are four times as attractive and fruit mastery targets receive a strong priority. The arc naturally ends as mastery or time advances.
 - **Aging and injury:** life stages scale with race. A human in their seventies enters the legacy years; an eighty-year-old giant does not. Elder training excludes raw strength, speed, endurance, stamina and durability grinding, emphasizing existing techniques and judgment. Recovery, teaching, leadership, reflection and homecoming become more frequent. Injuries favor care and limit strenuous practice.
 - **Dreams:** all 16 origin dreams have four distinct milestones. Their relevant activities receive higher weights. Later milestones require travel, time, skills and sometimes specific accomplishments. The greatest-swordsman claim requires a recorded victory over Mihawk; curing a disease requires a doctor’s guidance; an admiral requires a Marine commission. Fate can open a Marine training berth or sword apprenticeship when the initial character does not fit that dream. Fulfillment does not end the run: legacy continues.
-- **Places:** travel connects 17 named locations across the Blue Seas, Paradise and the New World. Location and starting era filter who can appear. Preparation and capability influence the chance of venturing farther.
+- **Places:** travel now runs on the exported QGIS world graph: 230 locations across the four Blues, Paradise, the New World, Calm Belt and Red Line. The 45 authored routes control Reverse Mountain and Paradise progression; where the source map intentionally has no authored route yet, same-sea sailing uses the QGIS coordinates to surface nearby destinations. Territory, climate and mapped hazards feed danger and encounter context.
 - **Canon meetings:** opponents are people such as Smoker, Buggy, Luffy, Law, Shanks, Mihawk and their crews or units. Temperament, faction, bounty and previous meetings influence whether weapons are drawn at all. Friendly meetings can bring help, lessons or dream leads. Hostile meetings still have only one battle-resolution wheel.
 - **Memory:** help produces allies; hostility leaves grudges; recurring characters remember their meetings. A character killed by a journey outcome stays dead and disappears from both encounter and mentor pools. This changes your alternate world, not the official story.
 - **Named teachers:** a teacher’s expertise changes training-target weights; Koushirou favors blades, while a medical dream favors Crocus or Kureha when available.
@@ -81,7 +81,11 @@ Canon names, affiliations and broad abilities provide the setting. Ratings, like
 
 ### QGIS world-data bridge
 
-The authored QGIS project uses islands, regions, routes, settlements, barriers and danger-zone layers. The browser simulation mirrors those field contracts in `src/simulation.js`, including route travel cost/days, danger level/score, faction access, encounter/outcome chance, danger-zone severity and faction. The supplied `.qgz` references external GeoPackages, so exact geometry/features still need to be exported into repository-friendly data before the static site can route directly over every mapped edge. Until then, the existing named-place network supplies location tiers while the same danger/faction concepts drive the simulation.
+The QGIS export is now live game data rather than only a schema contract. `src/world/` contains a browser-friendly export of the cleaned GeoPackage: **230 locations, 45 authored routes, 8 regions and 14 danger zones**. `src/world-map.js` resolves legacy place names, authored route direction, Log/Eternal Pose requirements, route travel days/danger, faction territory and coordinate-nearest sailing.
+
+Reverse Mountain and Paradise honor the authored route graph instead of inventing shortcuts. The four Blues and the current New World dataset use same-region QGIS coordinates where explicit route authoring is still incomplete. Calm Belt and Red Line geography contribute additional danger. Destructive alternate-world events remove real map destinations from later travel pools.
+
+The original high-resolution QGIS raster is source material rather than a required runtime dependency; gameplay uses the structured GeoPackage-derived data so the static site remains lightweight.
 
 ## Hosting on GitHub Pages
 
@@ -96,7 +100,8 @@ The app works without network services after assets are loaded. Google Fonts is 
 - `src/journey-data.js` — event catalogs, instincts, growth tracks and longevity settings.
 - `src/journey.js` — current journey state machine, progression, aging and versioned save replay.
 - `src/story-data.js` / `src/story.js` — canon cast, locations, dream milestones, priorities and relationship memory.
-- `src/simulation.js` — faction-sensitive danger, world stability, map-data contract, destructive world events and deterministic companion background turns.
+- `src/world/` / `src/world-map.js` — QGIS-derived locations, routes, regions, danger zones and browser travel-graph adapter.
+- `src/simulation.js` — faction-sensitive danger, world stability, destructive world events and deterministic companion background turns.
 - `src/journey-v1.js` / `src/journey-data-v1.js` — frozen compatibility rules for existing saves.
 - `src/app.js` — creator/journey UI, wheel animation, live character, timeline, browser saves and downloads.
 - `style.css` / `index.html` — responsive presentation.

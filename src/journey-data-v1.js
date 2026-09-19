@@ -1,5 +1,5 @@
 import {options} from './data.js';
-export const JOURNEY_VERSION = 2;
+export const JOURNEY_VERSION = 1;
 // Authored longevity settings, not claims about canonical life expectancy.
 // Most races use a shared humanoid baseline because canon does not quantify them.
 export const LIFESPANS = {
@@ -21,7 +21,7 @@ export const TRAINING_LABELS = {
  battleIQ:'Battle IQ',strength:'Strength',durability:'Durability',speed:'Speed',endurance:'Endurance',stamina:'Stamina',
 };
 export const EVENTS = [
- ['dream','Pursue your dream',13],['travel','Set sail for another island',10],['recovery','Recover from the journey',5],['reflection','Reflect and plan',4],['teaching','Pass on your experience',5],['homecoming','A call from home',3],['leadership','Your companions need direction',5],['revolutionaries','Meet the Revolutionaries',4],['training','Dedicated training',18],['quiet','Quiet months',12],['world','World event',7],
+ ['training','Dedicated training',18],['quiet','Quiet months',12],['world','World event',7],
  ['pirates','Encounter pirates',9],['marines','Encounter Marines',6],['hunters','Bounty hunters',3],
  ['spar','Spar with colleagues',7],['fruit','Discover a Devil Fruit',2],['haki','A test of will',3],
  ['treasure','Hidden treasure',6],['weapon','Weapon cache',4],['recruit','A new companion',4],
@@ -31,7 +31,7 @@ export const EVENTS = [
  ['provisions','A fruit in your possession',3],['celebration','Port celebration',4],['shipwreck','Ship in distress',2],
 ];
 export const EVENT_BY_ID = Object.fromEntries(EVENTS.map(([value,label,weight])=>[value,{value,label,weight}]));
-export const COMBAT_EVENTS = ['pirates','marines','hunters','duel','betrayal','revolutionaries'];
+export const COMBAT_EVENTS = ['pirates','marines','hunters','duel','betrayal'];
 export const THREATS = [
  {value:'rookie',label:'Rookie band',weight:40,power:12},
  {value:'seasoned',label:'Seasoned fighters',weight:32,power:24},

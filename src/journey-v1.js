@@ -1,9 +1,7 @@
 import {options,fruits,swords,firstNames,surnames} from './data.js';
 import {nextStep,values,weightedPick,probability,validateHistory,characterDocument,fullName} from './engine.js';
-import {JOURNEY_VERSION,LIFESPANS,XP_LEVELS,TRACKS,TRAINING_LABELS,EVENTS,EVENT_BY_ID,COMBAT_EVENTS,THREATS,INSTINCTS,WORLD_EVENTS,ROLES,TREASURES,OUTCOME_NOTES} from './journey-data.js';
-import * as legacy from './journey-v1.js';
-import {CANON,REGIONS,initializeStory,lifeContext,placeOf,dreamOf,dreamReadiness,dreamOutcomePool,canonPool,encounterOf,encounterTones,encounterInstincts,trainingWeights,shapeEvents,travelPool,chapterPremise,encounterStory,rememberEncounter} from './story.js';
-export const SAVE_VERSION = 3;
+import {JOURNEY_VERSION,LIFESPANS,XP_LEVELS,TRACKS,TRAINING_LABELS,EVENTS,EVENT_BY_ID,COMBAT_EVENTS,THREATS,INSTINCTS,WORLD_EVENTS,ROLES,TREASURES,OUTCOME_NOTES} from './journey-data-v1.js';
+export const SAVE_VERSION = 2;
 const clamp=(x,min,max)=>Math.min(max,Math.max(min,x));
 const opt=(value,label,weight,note='')=>({value,label,weight,note});
 const pool=rows=>rows.map(([value,label,weight,note])=>opt(value,label,weight,note));
@@ -20,7 +18,7 @@ export function createJourney(history){
  for(const key of skillKeys)if(character[key]!==undefined){const rank=trackFor(key).indexOf(character[key]);skills[key]=XP_LEVELS[Math.max(0,rank)];}
  const crew=[];if(character.crewMode==='Form your own group')for(let i=1;i<=Number(character.crewSize);i++)crew.push({name:character[`member_${i}_canon`]||character[`member_${i}_generated`],role:character[`member_${i}_role`]||'Canon ally',race:character[`member_${i}_race`]||'Canon',canon:character[`member_${i}_origin`]==='Canon character'});
  const j={version:JOURNEY_VERSION,character,skills,crew,group:character.joinedCrew||character.crewName||null,groupSupport:character.joinedCrew?3:0,startAgeMonths:Number(character.age)*12,ageMonths:Number(character.age)*12,elapsedMonths:0,alive:true,cause:null,chapter:0,pending:null,rolls:[],log:[],injury:0,captured:false,berries:0,bounty:Number((character.bounty||'').replace(/\D/g,''))||0,inventory:[],danger:0,wins:0,losses:0,kills:0,discoveries:0,recruits:0,peakPower:0};
- j.peakPower=combatPower(j);j.legacyCutover=0;j.legacyPending=false;return initializeStory(j);
+ j.peakPower=combatPower(j);return j;
 }
 export function liveCharacter(j){
  const a={...j.character,age:ageLabel(j.ageMonths),bounty:j.bounty?money(j.bounty):(j.character.bounty==='No government bounty'?'No government bounty':'No bounty yet')};
@@ -51,8 +49,8 @@ export function boostOutcome(input,value,points){
  return base.map(o=>({...o,weight:o.value===value?after:o.weight*scale}));
 }
 export function combatOdds(j,threatValue,instinct='Steady resolve'){
- const threat=CANON.find(c=>c.id===threatValue)||THREATS.find(t=>t.value===threatValue);if(!threat)throw new Error('Unknown opponent');
- const power=combatPower(j),enemy=threat.power+j.danger*2;const ratio=clamp(power/enemy,.03,5);
+ const threat=THREATS.find(t=>t.value===threatValue);if(!threat)throw new Error('Unknown opponent');
+ const power=combatPower(j),enemy=threat.power+j.danger*2;const ratio=clamp(power/enemy,.15,5);
  const speed=levelOf(j,'speed'),iq=levelOf(j,'battleIQ');
  let base=normalize(pool([
  ['victory','Win · opponent survives',25*Math.pow(ratio,1.3),OUTCOME_NOTES.victory],
@@ -63,16 +61,15 @@ export function combatOdds(j,threatValue,instinct='Steady resolve'){
  ['captured','Lose · captured',9/Math.sqrt(ratio),OUTCOME_NOTES.captured],
  ['death','Killed in battle',Math.min(35,3/Math.pow(ratio,1.1))+j.injury*.5,OUTCOME_NOTES.death],
  ]));
- if(threat.style?.includes('Logia')&&!('haki_armament' in j.skills))base=normalize(base.map(o=>({...o,weight:['victory','lethal'].includes(o.value)?o.weight*.35:o.weight})));
  const targets={'Urge to flee':'escape','Aggressive impulse':'lethal','Protect your people':'spared','Read the battlefield':'victory'};
- const target=targets[instinct];const adjusted=target?boostOutcome(base,target,['lethal','victory'].includes(target)?7*Math.min(1,ratio):7):base;
+ const target=targets[instinct];const adjusted=target?boostOutcome(base,target,7):base;
  return {base,options:adjusted,power,enemy,modifier:target?{label:instinct,outcome:base.find(o=>o.value===target).label,before:base.find(o=>o.value===target).weight,after:adjusted.find(o=>o.value===target).weight}:null};
 }
 export function eventPool(j){
  if(j.captured)return pool([['prison','Months in captivity',65],['prisonBreak','An opening to escape',35]]);
- return shapeEvents(j,EVENTS.filter(([id])=>!(id==='provisions'&&!j.inventory.some(i=>i.type==='fruit'))&&!(id==='spar'&&!j.crew.length&&!j.groupSupport)&&!(id==='betrayal'&&!j.crew.length&&!j.groupSupport)&&!(id==='hunters'&&!j.bounty)&&!(id==='recruit'&&!companionPool(j).length)&&!(id==='haki'&&['haki_observation','haki_armament','haki_conqueror'].every(k=>k in j.skills))).map(([value,label,weight])=>opt(value,label,weight*(COMBAT_EVENTS.includes(value)?1+j.danger*.12:1))));
+ return EVENTS.filter(([id])=>!(id==='provisions'&&!j.inventory.some(i=>i.type==='fruit'))&&!(id==='spar'&&!j.crew.length&&!j.groupSupport)&&!(id==='betrayal'&&!j.crew.length&&!j.groupSupport)&&!(id==='hunters'&&!j.bounty)&&!(id==='recruit'&&!companionPool(j).length)&&!(id==='haki'&&['haki_observation','haki_armament','haki_conqueror'].every(k=>k in j.skills))).map(([value,label,weight])=>opt(value,label,weight*(COMBAT_EVENTS.includes(value)?1+j.danger*.12:1)));
 }
-export function trainingPool(j){return trainingWeights(j,Object.keys(j.skills).filter(k=>j.skills[k]<XP_LEVELS[trackFor(k).length-1]).map(k=>opt(k,skillLabel(k),k.startsWith('haki_')?2:5)));}
+function trainingPool(j){return Object.keys(j.skills).filter(k=>j.skills[k]<XP_LEVELS[trackFor(k).length-1]).map(k=>opt(k,skillLabel(k),k.startsWith('haki_')?2:5));}
 function heldFruitNames(j){return [j.character.fruit,...j.crew.map(c=>c.fruit),...j.inventory.filter(i=>i.type==='fruit').map(i=>i.name)].filter(Boolean);}
 function fruitTypes(j){const used=heldFruitNames(j);return pool([['Paramecia','Paramecia',55],['Standard Zoan','Standard Zoan',30],['Ancient Zoan','Ancient Zoan',5],['Mythical Zoan','Mythical Zoan',1],['Logia','Logia',9]]).filter(o=>fruits[o.value].some(f=>!used.includes(f.value)));}
 function weaponPool(j){
@@ -92,7 +89,6 @@ export function naturalDeathChance(race,startAgeMonths,duration){
  return (1-survival)*100;
 }
 export function nextJourneyStep(j){
- if(j.legacyPending)return legacy.nextJourneyStep(j);
  if(!j.alive)return null;
  const p=j.pending;const make=(key,label,opts,note='',extras={})=>({id:`${j.chapter+1}:${key}`,key,label,group:'Journey',options:opts,note,...extras});
  if(!p)return make('event','What lies on the horizon?',eventPool(j),'One event = four months. Follow-up wheels resolve that same period. Time skips state their own duration.');
@@ -104,37 +100,18 @@ export function nextJourneyStep(j){
  const need=(key,label,opts,note='',extras={})=>a[key]===undefined?make(key,label,opts,note,extras):null;
  let s;
  if(COMBAT_EVENTS.includes(event)){
- if(event==='betrayal'){
- if(s=need('opponent','Which danger exploits the betrayal?',canonPool(j,'pirates'),'An actual pirate crew takes advantage of division among your allies.'))return s;
- }else if(s=need('opponent','Whose flag breaks the horizon?',canonPool(j,event),`You are near ${j.story.location}. Starting-era eligibility, nearby seas, your power and past meetings shape the cast.`))return s;
- const c=encounterOf(j);
- if(event!=='betrayal'&&(s=need('tone',`How does ${c.name} receive you?`,encounterTones(j,c),encounterStory(j,c))))return s;
- if(a.tone==='friendly')return make('socialResult',`A meeting with ${c.name}`,pool([
- ['alliance','Part with a promise of mutual help',25],['lesson','Learn from their experience',25],['clue','Receive a lead toward your dream',25],['part','Share provisions and part peacefully',20],['offend','An argument leaves a grudge',5],
- ]),`${c.name} · ${c.crew}. No fight has started; this one resolution decides what the meeting leaves behind.`);
- if(s=need('instinct','What instinct takes hold?',encounterInstincts(j,INSTINCTS),`Facing ${c.name} and ${c.crew}, your condition and experience shape your automatic response.`))return s;
+ if(s=need('opponent','Who stands in your way?',THREATS,`Your current combat rating is ${combatPower(j)}. World danger: ${j.danger}/5. This rating combines skills, powers, weapons, allies, injuries and age.`))return s;
+ if(s=need('instinct','What instinct takes hold?',INSTINCTS,'You do not choose a response. Fate rolls an impulse that adjusts the single encounter-resolution wheel.'))return s;
  const odds=combatOdds(j,a.opponent,a.instinct);
- return make('resolution',`${c.name}: one encounter, one outcome`,odds.options,`${c.crew} · ${c.style}. Your rating ${odds.power} vs ${odds.enemy}. ${c.style.includes('Logia')&&!('haki_armament' in j.skills)?'Without Armament, hitting a Logia is harder. ':''}Attacking impulses cannot erase a huge power gap.`,{baseOptions:odds.base,modifier:odds.modifier});
+ return make('resolution','One encounter. One outcome.',odds.options,`Your combat rating ${odds.power} vs opponent ${odds.enemy}. Strength, skills, powers, allies and injuries shape the base odds.`,{baseOptions:odds.base,modifier:odds.modifier});
  }
- if(event==='travel')return make('destination','Which shore calls you next?',travelPool(j),'Nearby waters are common; stronger, prepared travelers are more likely to push onward.');
- if(event==='dream'){
- const d=dreamOf(j),r=dreamReadiness(j);
- return make('dreamResult',j.story.dreamProgress>=4?'A fulfilled dream can still change lives':d.steps[j.story.dreamProgress],dreamOutcomePool(j),r.ready?'Your experience has put this milestone within reach. Fate decides whether the work pays off.':`Still needed: ${r.needs.join('; ')}. A useful lead can be found while you prepare.`);
- }
- if(event==='recovery')return make('lifeResult','What does time to heal give you?',pool([['healed','Rest and care restore you',70],['insight','Gentle practice teaches you a better way',20],['slow','Recovery takes longer than hoped',10]]));
- if(event==='reflection')return make('lifeResult','What becomes clear in the quiet?',pool([['insight','An old mistake becomes a useful lesson',40],['lead','Your notes reveal a forgotten lead',35],['rest','You make peace with a difficult memory',25]]));
- if(event==='teaching')return make('lifeResult','What do you leave with your student?',pool([['student','A student carries your teaching forward',60],['insight','Teaching reveals a gap in your own understanding',25],['lead','Your student brings news of your dream',15]]));
- if(event==='homecoming')return make('lifeResult','What waits when you answer the call?',pool([['home','A reunion gives you a place to return to',55],['lead','Someone remembers the person you used to be',30],['farewell','A farewell changes what matters to you',15]]));
- if(event==='leadership')return make('lifeResult','What does your example inspire?',pool([['trust','Your companions find common purpose',60],['insight','You learn to listen before giving orders',25],['friction','Disagreement slows your plans',15]]));
  if(['training','mentor','spar','timeskip'].includes(event)){
- if(event==='mentor'&&(s=need('mentor','Who is willing to teach you?',canonPool(j,'mentor'),'A named teacher’s expertise changes the training-target odds.')))return s;
  if(event==='timeskip'&&(s=need('duration','How many years pass?',pool([['12','One year',45],['24','Two years',35],['60','Five years',15],['120','Ten years',5]]),'This duration replaces the usual four months; follow-up training does not add more time.')))return s;
  const targets=trainingPool(j);
  if(!targets.length)return make('trainingResult','A master’s quiet discipline',options([['Maintain your mastery',1]]),'Every available skill has reached its current cap. Time still advances.');
  if(s=need('target',event==='spar'?'What does sparring sharpen?':'What develops during this chapter?',targets,'Progress builds toward the next rank; mastery never resets or decreases from training.'))return s;
  if(s=need('trainingInstinct','What carries you through?',options([['Steady discipline',65],['Sudden inspiration',20],['Restless distraction',15]]),'An automatic impulse changes the next training wheel.'))return s;
- const life=lifeContext(j);
- const base=pool([['steady','Steady progress',life.freshFruit?65:55],['breakthrough','A breakthrough',life.young?20:life.elder?7:15],['stalled','No progress',25],['strain','Training injury',life.elder?2:j.injury?10:5]]);
+ const base=pool([['steady','Steady progress',55],['breakthrough','A breakthrough',15],['stalled','No progress',25],['strain','Training injury',5]]);
  const baseNorm=normalize(base);const target=a.trainingInstinct==='Sudden inspiration'?'breakthrough':a.trainingInstinct==='Restless distraction'?'stalled':null;
  const adjusted=target?boostOutcome(base,target,7):baseNorm;
  return make('trainingResult',event==='spar'?'What comes of the spar?':'Does your effort pay off?',adjusted,'One resolution determines the gain or setback. Practice accumulates into permanent skill ranks.',{baseOptions:baseNorm,modifier:target?{label:a.trainingInstinct,outcome:base.find(o=>o.value===target).label,before:baseNorm.find(o=>o.value===target).weight,after:adjusted.find(o=>o.value===target).weight}:null});
@@ -193,58 +170,31 @@ function treasureEffect(j,name,effects){
 function kill(j,cause,effects){j.alive=false;j.cause=cause;effects.push(`Your journey ends: ${cause}.`);}
 function finishEvent(j){
  const p=j.pending;j.chapter++;
- j.log.push({chapter:j.chapter,event:p.event,location:p.location,narrative:p.narrative,trainingTarget:p.picks.target,encounter:p.picks.opponent?CANON.find(c=>c.id===p.picks.opponent)?.name:null,title:EVENT_BY_ID[p.event]?.label||(p.event==='prison'?'Months in captivity':'An opening to escape'),startAge:p.startAge,age:j.ageMonths,months:p.months,result:p.result,effects:[...p.effects],rolls:p.rolls.map(r=>({...r})),alive:j.alive});
+ j.log.push({chapter:j.chapter,event:p.event,title:EVENT_BY_ID[p.event]?.label||(p.event==='prison'?'Months in captivity':'An opening to escape'),startAge:p.startAge,age:j.ageMonths,months:p.months,result:p.result,effects:[...p.effects],rolls:p.rolls.map(r=>({...r})),alive:j.alive});
  j.peakPower=Math.max(j.peakPower,combatPower(j));j.pending=null;
 }
 function settle(j,result){
  const p=j.pending,a=p.picks,e=p.effects,event=p.event;let requestedMonths=event==='timeskip'?Number(a.duration):4;
  const actualMonths=Math.max(0,Math.min(requestedMonths,lifespanFor(j.character.race).limit*12-j.ageMonths));
  p.result=result.label;
- if(event==='travel'){j.story.location=result.value;if(!j.story.visited.includes(result.value))j.story.visited.push(result.value);e.push(`Arrived at ${result.value}, ${REGIONS[placeOf(j)[1]]}.`);}
- if(event==='dream'){
- const d=dreamOf(j);
- if(result.value==='commission'){j.character.faction='Marine';j.bounty=0;j.group='Marine training unit';j.groupSupport=3;e.push('Your new Marine path begins with training, not a high rank.');}
- if(result.value==='swordPath'){j.character.fightingStyle='One-sword style';j.character.weapon_1='Forged katana';j.skills.weaponMastery_1=0;e.push('You begin sword practice with a forged katana at Untrained mastery.');}
- if(result.value==='milestone'){const milestone=d.steps[j.story.dreamProgress];j.story.milestones.push(milestone);j.story.dreamProgress++;j.story.dreamClues=0;e.push(`Dream milestone ${j.story.dreamProgress}/4: ${milestone}.`);if(j.story.dreamProgress===4)e.push('Your dream is fulfilled. Your life and legacy continue.');}
- if(result.value==='clue'||result.value==='sacrifice'){j.story.dreamClues++;e.push('A new lead brings your dream closer.');if(result.value==='sacrifice')cash(j,-Math.min(25000,j.berries),e);}
- if(result.value==='setback')e.push('This lead fails, but completed milestones remain yours.');
- if(result.value==='legacy'){j.story.legacy++;e.push('You help another dreamer begin. Your legacy grows.');}
- }
- if(['recovery','reflection','teaching','homecoming','leadership'].includes(event)){
- if(['healed','rest','home'].includes(result.value))injury(j,-3,e);
- if(['insight','trust'].includes(result.value))improve(j,'battleIQ',8,e);
- if(result.value==='lead'){j.story.dreamClues++;e.push('A conversation adds a lead toward your dream.');}
- if(['student','home','farewell','trust'].includes(result.value)){j.story.legacy++;e.push('You leave a mark on someone else’s life. Legacy +1.');}
- if(result.value==='slow')injury(j,-1,e);
- }
  if(COMBAT_EVENTS.includes(event)){
- const v=result.value,c=encounterOf(j);
- rememberEncounter(j,c?.id,v);
- if(c)e.push(`${c.name} · ${c.crew}: ${result.label}.`);
- if(v==='alliance'){j.story.dreamClues++;e.push(`${c.name} will remember you as an ally.`);}
- if(v==='lesson')improve(j,'battleIQ',8,e);
- if(v==='clue'){j.story.dreamClues++;e.push(`${c.name} gives you a lead toward your dream.`);}
- if(v==='part')injury(j,-1,e);
- if(v==='offend')e.push('The next meeting may be less welcoming.');
- if(v==='victory'||v==='lethal'){j.wins++;if(v==='lethal')j.kills++;improve(j,'fightingMastery',8,e);cash(j,10000,e);if(['Pirate','Revolutionary'].includes(j.character.faction)){j.bounty+=100000+(CANON.find(c=>c.id===a.opponent)||THREATS.find(t=>t.value===a.opponent)).power*10000;e.push(`Bounty rises to ${money(j.bounty)}.`);}}
+ const v=result.value;
+ if(v==='victory'||v==='lethal'){j.wins++;if(v==='lethal')j.kills++;improve(j,'fightingMastery',8,e);cash(j,10000,e);if(['Pirate','Revolutionary'].includes(j.character.faction)){j.bounty+=100000+THREATS.find(t=>t.value===a.opponent).power*10000;e.push(`Bounty rises to ${money(j.bounty)}.`);}}
  if(['wounded','spared','captured','death'].includes(v))j.losses++;
  if(v==='wounded')injury(j,2,e);
  if(v==='spared')e.push('You live because an opponent shows mercy or help arrives.');
  if(v==='captured'){j.captured=true;e.push('Captured. Only captivity events are available until you are freed.');}
- if(v==='death')kill(j,`Killed in an encounter with ${c?.name||'an opponent'}`,e);
- if(v==='lethal'&&c)e.push(`${c.name} is dead in your alternate world and cannot appear again.`);
+ if(v==='death')kill(j,'Killed in battle',e);
  if(event==='betrayal'){if(j.crew.length){const member=j.crew.pop();e.push(`${member.name} leaves your group after the betrayal.`);}else{j.groupSupport=Math.max(0,j.groupSupport-1);e.push('Betrayal costs you some support from your group.');}}
  }else if(['training','mentor','spar','timeskip'].includes(event)){
- const life=lifeContext(j);
- const multiplier=(event==='mentor'?2:event==='timeskip'?Math.max(1,actualMonths/4):1)*(life.elder ? 0.65 : life.young ? 1.25 : 1);
- if(event==='mentor'){const teacher=CANON.find(c=>c.id===a.mentor);if(teacher){j.story.mentored++;rememberEncounter(j,teacher.id,'lesson');e.push(`${teacher.name} of ${teacher.crew} works with you on ${skillLabel(a.target||'battleIQ')}.`);}}
+ const multiplier=event==='mentor'?2:event==='timeskip'?Math.max(1,actualMonths/4):1;
  if(result.value==='steady')improve(j,a.target,Math.round(5*multiplier),e);
  if(result.value==='breakthrough')improve(j,a.target,Math.round(15*multiplier),e);
  if(result.value==='strain')injury(j,1,e);
  if(result.value==='stalled')e.push('No skill progress this chapter.');
  }else if(event==='fruit'||event==='provisions'){
  if(event==='provisions'&&result.value!=='store'){const item=j.inventory.find(i=>i.name===a.fruitName);if(item){item.count--;j.inventory=j.inventory.filter(i=>i.count>0);}}
- if(result.value==='eat'){j.character.devilFruit='Yes';j.character.fruitType=a.fruitType;j.character.fruit=a.fruitName;j.skills.fruitMastery=0;j.story.fruitAcquiredMonth=j.elapsedMonths;e.push(`Ate ${a.fruitName}. Fruit mastery begins at Just eaten. You can no longer swim.`);}
+ if(result.value==='eat'){j.character.devilFruit='Yes';j.character.fruitType=a.fruitType;j.character.fruit=a.fruitName;j.skills.fruitMastery=0;e.push(`Ate ${a.fruitName}. Fruit mastery begins at Just eaten. You can no longer swim.`);}
  if(result.value==='store'){if(event==='fruit')giveItem(j,a.fruitName,'fruit',e);else e.push('The fruit remains safely stored.');}
  if(result.value==='sell')cash(j,100000000,e);
  if(result.value==='gift'){
@@ -292,13 +242,12 @@ function settle(j,result){
  if(j.alive&&naturalDeathChance(j.character.race,p.startAge,p.months)>0)p.phase='aging';else finishEvent(j);
 }
 export function applyJourneyRoll(j,value){
- if(j.legacyPending){const record=legacy.applyJourneyRoll(j,value);j.legacyCutover=j.rolls.length;if(!j.pending){j.legacyPending=false;delete j.story;initializeStory(j);}return record;}
  const s=nextJourneyStep(j);if(!s)throw new Error('This journey has ended.');
  const selected=s.options.find(o=>o.value===value);if(!selected)throw new Error('That result is not available on this wheel.');
  const record={id:s.id,value,label:selected.label,chance:probability(s.options,value),wheel:s.label,...(s.modifier?{modifier:{...s.modifier}}:{})};
  j.rolls.push({id:s.id,value});
  if(s.key==='event'){
- j.pending={event:value,location:j.story.location,narrative:chapterPremise(j,value),startAge:j.ageMonths,months:0,picks:{},phase:'event',effects:[],rolls:[record]};return record;
+ j.pending={event:value,startAge:j.ageMonths,months:0,picks:{},phase:'event',effects:[],rolls:[record]};return record;
  }
  const p=j.pending;p.rolls.push(record);
  if(s.key==='aging'){
@@ -307,7 +256,7 @@ export function applyJourneyRoll(j,value){
  }
  p.picks[s.key]=value;
  if(s.key==='storedFruit'){p.picks.fruitName=value;p.picks.fruitType=Object.keys(fruits).find(type=>fruits[type].some(f=>f.value===value));return record;}
- const intermediary=['opponent','tone','mentor','instinct','duration','target','trainingInstinct','fruitType','fruitName'];
+ const intermediary=['opponent','instinct','duration','target','trainingInstinct','fruitType','fruitName'];
  if(intermediary.includes(s.key))return record;
  if(s.key==='awakening'&&value==='yes')return record;
  if(s.key==='recruitResult'&&value==='join')return record;
@@ -316,23 +265,14 @@ export function applyJourneyRoll(j,value){
 export function rollJourney(j,random=Math.random){const s=nextJourneyStep(j);if(!s)return null;return applyJourneyRoll(j,weightedPick(s.options,random).value);}
 export function saveDocument(history,j){
  const base=characterDocument(history);
- return {...base,schemaVersion:SAVE_VERSION,character:j?liveCharacter(j):base.character,journey:j?{version:JOURNEY_VERSION,legacyRolls:j.rolls.slice(0,j.legacyCutover),rolls:j.rolls.slice(j.legacyCutover)}:null};
-}
-function upgradeLegacy(history,rolls){
- const j=legacy.loadDocument({game:'Grand Line Origins',schemaVersion:2,history,journey:{version:1,rolls}}).journey;
- j.version=JOURNEY_VERSION;j.legacyCutover=j.rolls.length;j.legacyPending=!!j.pending;return initializeStory(j);
+ return {...base,schemaVersion:SAVE_VERSION,character:j?liveCharacter(j):base.character,journey:j?{version:JOURNEY_VERSION,rolls:j.rolls}:null};
 }
 export function loadDocument(doc){
- if(!doc||doc.game!=='Grand Line Origins'||![1,2,SAVE_VERSION].includes(doc.schemaVersion))throw new Error('This is not a supported Grand Line Origins save.');
+ if(!doc||doc.game!=='Grand Line Origins'||![1,SAVE_VERSION].includes(doc.schemaVersion))throw new Error('This is not a supported Grand Line Origins save.');
  const history=validateHistory(doc.history);let journey=null;
- if(doc.schemaVersion===2&&doc.journey){
- if(doc.journey.version!==1)throw new Error('Unsupported older journey version.');
- journey=upgradeLegacy(history,doc.journey.rolls);
- }else if(doc.schemaVersion===SAVE_VERSION&&doc.journey){
- const old=doc.journey.legacyRolls;
- if(doc.journey.version!==JOURNEY_VERSION||!Array.isArray(doc.journey.rolls)||!Array.isArray(old)||doc.journey.rolls.length+old.length>20000)throw new Error('Invalid journey save.');
- journey=old.length?upgradeLegacy(history,old):createJourney(history);
- if(journey.legacyPending&&doc.journey.rolls.length)throw new Error('Finish the saved legacy chapter before adding new story rolls.');
+ if(doc.schemaVersion===SAVE_VERSION&&doc.journey){
+ if(doc.journey.version!==JOURNEY_VERSION||!Array.isArray(doc.journey.rolls)||doc.journey.rolls.length>20000)throw new Error('Invalid journey save.');
+ journey=createJourney(history);
  for(const record of doc.journey.rolls){const s=nextJourneyStep(journey);if(!s||s.id!==record?.id)throw new Error('Journey rolls are out of order or continue after death.');applyJourneyRoll(journey,record.value);}
  }
  return {history,journey};

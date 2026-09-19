@@ -1,1 +1,1 @@
-{"name":"grand-line-origins","version":"2.0.0","private":true,"type":"module","scripts":{"test":"node --test","start":"python3 -m http.server 8000"}}
+{"name":"grand-line-origins","version":"3.0.0","private":true,"type":"module","scripts":{"test":"node --test","start":"python3 -m http.server 8000"}}

@@ -216,11 +216,16 @@ function finishEvent(j){
 }
 function settle(j,result){
  const p=j.pending,a=p.picks,e=p.effects,event=p.event;
- const mappedRoute=event==='travel'?travelRoute(j,a.destination):null;
- let requestedMonths=event==='timeskip'?Number(a.duration):event==='travel'?Math.max(1,Math.ceil((mappedRoute?.days||1)/30))*(result.value==='delay'?2:1):4;
+ const mappedTravel=event==='travel'&&simulationResolutionActive(j),mappedRoute=mappedTravel?travelRoute(j,a.destination):null;
+ let requestedMonths=event==='timeskip'?Number(a.duration):event==='travel'?(mappedTravel?Math.max(1,Math.ceil((mappedRoute?.days||1)/30))*(result.value==='delay'?2:1):4):4;
  const actualMonths=Math.max(0,Math.min(requestedMonths,lifespanFor(j.character.race).limit*12-j.ageMonths));
  p.result=result.label;
- if(event==='travel'){
+ if(event==='travel'&&!mappedTravel){
+  const dest=worldLocation(result.value)||worldLocation(a.destination);j.story.location=result.value;
+  if(dest){j.story.location=dest.name;j.story.locationId=dest.id;if(!Array.isArray(j.story.visitedIds))j.story.visitedIds=[];if(!j.story.visitedIds.includes(dest.id))j.story.visitedIds.push(dest.id);}
+  if(!j.story.visited.includes(j.story.location))j.story.visited.push(j.story.location);
+  e.push(`Arrived at ${j.story.location}, ${REGIONS[placeOf(j)[1]]}.`);
+ }else if(event==='travel'){
   const dest=worldLocation(a.destination);
   if(result.value==='death')kill(j,`Lost while traveling toward ${dest?.name||'the next shore'}`,e);
   else if(result.value==='abort')e.push('The route is no longer viable; you remain where you are.');
@@ -345,6 +350,7 @@ export function applyJourneyRoll(j,value){
  }
  p.picks[s.key]=value;
  if(s.key==='storedFruit'){p.picks.fruitName=value;p.picks.fruitType=Object.keys(fruits).find(type=>fruits[type].some(f=>f.value===value));return record;}
+ if(s.key==='destination'&&!simulationResolutionActive(j)){settle(j,selected);return record;}
  const intermediary=['opponent','tone','mentor','instinct','duration','target','trainingInstinct','fruitType','fruitName','destination'];
  if(intermediary.includes(s.key))return record;
  if(s.key==='awakening'&&value==='yes')return record;

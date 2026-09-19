@@ -18,19 +18,30 @@ The Node test suite checks 3,000 generated origins and 1,500 complete lifetimes 
 
 ## Character creation
 
-- Origin: time period, race and racial traits, famous bloodline and family connections, D., age, race-conditioned height.
+- Origin: time period, race and racial traits, famous bloodline and family connections, D., age, race-conditioned height. The adventure-biased race wheel is now 70% Human / 30% combined non-human, and the famous-bloodline check is 10%.
 - Identity: dream, faction, starting government bounty, surname and given name.
 - Powers: awakened Haki, the combination of types, separate mastery for each; Devil Fruit possession, class/subtype, named fruit and mastery.
 - Combat: fighting style, fighting mastery, appropriate weapons, three separate distinct swords for three-sword style, and mastery for each weapon.
-- Attributes: battle IQ, strength, durability, speed, endurance and stamina.
+- Attributes: battle IQ, strength, durability, speed, endurance and stamina. Race/family heritage applies transparent full-rank starting shifts after the raw attribute rolls, capped at each track’s maximum.
 - Companions: go solo, join an era/faction-appropriate group, or form and name a group. Roll a companion count and each companion's canon/original origin. Canon recruits use a curated era/faction pool without repeats. Original recruits get name, race, role and personality wheels.
 - Saves: browser-local autosave, JSON export/import, undo and reset confirmation. Exports include the immutable origin and a versioned, replayable journey roll history. Old version-1 character exports remain importable.
 
 ## World model and limits
 
+### Heritage balance
+
+Race odds are authored for a fun adventurer pool rather than a world census: Human 70%, Fish-man 7%, Merfolk 5%, Mink 5%, Sky Islander 4.5%, Longarm 2.5%, Longleg 2.4%, Giant 1.3%, Dwarf 1%, Snakeneck 0.6%, Three-eye 0.35%, Lunarian 0.2%, Buccaneer 0.15%.
+
+Starting rank shifts stack between race and family and cap at the end of the relevant track. Key racial effects: Fish-man +2 Strength / +1 Durability / +1 Endurance; Giant +2 Strength / +2 Durability / +1 Endurance; Dwarf +2 Strength / +2 Speed / +1 Stamina; Lunarian +2 Durability plus +1 Strength / Speed / Endurance; Buccaneer +2 Strength / +2 Durability / +1 Endurance. Other non-human peoples receive smaller thematic bonuses, and Mink heritage includes Electro as a secondary combat style.
+
+The famous-bloodline roll is 10%. Human named-family weights total 100 before race filtering, with rarer lineages such as Gol made meaningfully possible without becoming common. Non-human bloodlines are no longer forced into Charlotte/Jaguar: Giants use a 70/30 Jaguar/original-clan split, while other non-humans use a 25/75 Charlotte/original-clan split.
+
+Family effects are **game inheritance rules, not claims about canon genetics**. Monkey guarantees Observation Haki; Gol guarantees Conqueror’s Haki; Donquixote guarantees Armament Haki. Portgas and Charlotte strongly improve Haki odds without guaranteeing it. Vinsmoke grants Black Leg-inspired kicks as a secondary style, Shimotsuki grants One-sword style, Kozuki grants Two-sword style, and Jaguar grants Brawling. Families also grant themed starting-rank shifts such as Trafalgar +2 Battle IQ, Vinsmoke +1 Strength / Durability / Speed, and Shimotsuki +1 Fighting Mastery / Speed. Guaranteed secondary styles do not delete the separately rolled primary style or weapon setup.
+
+
 **All odds are authored game-balancing estimates, not official One Piece statistics.** The population baseline favors humans; rare races and extraordinary powers remain rare. This samples aspiring adventurers, not a world census. Every wheel exposes its normalized conditional probabilities. Tiny wheel slices may be unlabeled; the odds list includes every outcome. The pointer lands at the midpoint of the selected weighted slice.
 
-This is an **alternate-timeline fan game**. Canon ownership of a named fruit or weapon is replaced by the player's result; recruiting a known character rewrites their allegiance. Era filters are curated starting-era eligibility, not an exhaustive continuity simulation. All fruit users lose swimming ability. Bloodlines grant narrative connections, not automatically inherited combat techniques. D. families force the initial; elsewhere D. results are speculative alternate ancestry. Zoan subtypes are presented as separate wheel outcomes. The catalog is curated, not every canon fruit, weapon, family or character. Includes Wano / early Egghead reveals.
+This is an **alternate-timeline fan game**. Canon ownership of a named fruit or weapon is replaced by the player's result; recruiting a known character rewrites their allegiance. Race and family bonuses are deliberately authored game mechanics rather than canonical statements that powers are genetically guaranteed. Era filters are curated starting-era eligibility, not an exhaustive continuity simulation. All fruit users lose swimming ability. Bloodlines grant narrative connections, not automatically inherited combat techniques. D. families force the initial; elsewhere D. results are speculative alternate ancestry. Zoan subtypes are presented as separate wheel outcomes. The catalog is curated, not every canon fruit, weapon, family or character. Includes Wano / early Egghead reveals.
 
 Original companions are **procedurally generated from authored pools**, not live AI model output. A real AI backend can be added later without putting a secret key in browser code. The journey uses a curated cast of 57 canon characters with crew/unit affiliations, fighting styles and authored encounter premises. Eligibility follows the starting era and current sea; this is not a complete simulation of canon chronology or canon-character aging. Named journey recruits remain original characters. Existing-group support is an abstract modifier rather than a simulated roster of the entire canon crew.
 

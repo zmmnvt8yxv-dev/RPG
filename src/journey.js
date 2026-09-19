@@ -1,4 +1,4 @@
-import {options,fruits,swords,firstNames,surnames} from './data.js';
+import {options,fruits,swords,firstNames,surnames,heritageProfile} from './data.js';
 import {nextStep,values,weightedPick,probability,validateHistory,characterDocument,fullName} from './engine.js';
 import {JOURNEY_VERSION,LIFESPANS,XP_LEVELS,TRACKS,TRAINING_LABELS,EVENTS,EVENT_BY_ID,COMBAT_EVENTS,THREATS,INSTINCTS,WORLD_EVENTS,ROLES,TREASURES,OUTCOME_NOTES} from './journey-data.js';
 import * as legacy from './journey-v1.js';
@@ -16,12 +16,24 @@ export function levelOf(j,key){const track=trackFor(key);let level=0;for(let i=0
 export function skillLabel(key){return TRAINING_LABELS[key]||`Weapon ${key.split('_').at(-1)} mastery`;}
 export function ageLabel(months){const years=Math.floor(months/12),rest=months%12;return `${years}y${rest?` ${rest}m`:''}`;}
 export const money=n=>`฿ ${Math.floor(n).toLocaleString('en-US')}`;
-export function createJourney(history){
+function applyHeritage(character,skills,enabled=true){
+ const profile=heritageProfile(character);
+ if(!enabled)return profile;
+ for(const [key,bonus] of Object.entries(profile.bonuses)){
+  const track=trackFor(key);if(!track||!bonus)continue;
+  const current=skills[key]??0;let rank=0;for(let i=0;i<track.length;i++)if(current>=XP_LEVELS[i])rank=i;
+  skills[key]=XP_LEVELS[Math.min(track.length-1,rank+bonus)];
+ }
+ for(const key of profile.guaranteedHaki)if(!(key in skills))skills[key]=0;
+ return profile;
+}
+export function createJourney(history,{heritageVersion=1}={}){
  if(nextStep(history))throw new Error('Complete your origin before beginning the journey.');
  const character={...values(history)};const skills={};
  for(const key of skillKeys)if(character[key]!==undefined){const rank=trackFor(key).indexOf(character[key]);skills[key]=XP_LEVELS[Math.max(0,rank)];}
+ const heritage=applyHeritage(character,skills,heritageVersion>=1);
  const crew=[];if(character.crewMode==='Form your own group')for(let i=1;i<=Number(character.crewSize);i++)crew.push({name:character[`member_${i}_canon`]||character[`member_${i}_generated`],role:character[`member_${i}_role`]||'Canon ally',race:character[`member_${i}_race`]||'Canon',canon:character[`member_${i}_origin`]==='Canon character'});
- const j={version:JOURNEY_VERSION,character,skills,crew,group:character.joinedCrew||character.crewName||null,groupSupport:character.joinedCrew?3:0,startAgeMonths:Number(character.age)*12,ageMonths:Number(character.age)*12,elapsedMonths:0,alive:true,cause:null,chapter:0,pending:null,rolls:[],log:[],injury:0,captured:false,berries:0,bounty:Number((character.bounty||'').replace(/\D/g,''))||0,inventory:[],danger:0,wins:0,losses:0,kills:0,discoveries:0,recruits:0,peakPower:0,startLocationRollVersion:1,startLocationResolved:false};
+ const j={version:JOURNEY_VERSION,character,skills,heritageVersion,heritage,crew,group:character.joinedCrew||character.crewName||null,groupSupport:character.joinedCrew?3:0,startAgeMonths:Number(character.age)*12,ageMonths:Number(character.age)*12,elapsedMonths:0,alive:true,cause:null,chapter:0,pending:null,rolls:[],log:[],injury:0,captured:false,berries:0,bounty:Number((character.bounty||'').replace(/\D/g,''))||0,inventory:[],danger:0,wins:0,losses:0,kills:0,discoveries:0,recruits:0,peakPower:0,startLocationRollVersion:1,startLocationResolved:false};
  j.peakPower=combatPower(j);j.legacyCutover=0;j.legacyPending=false;j.simulationCutover=0;initializeStory(j);ensureSimulation(j);return j;
 }
 export function liveCharacter(j){
@@ -29,7 +41,7 @@ export function liveCharacter(j){
  for(const key of Object.keys(j.skills))a[key]=trackFor(key)[levelOf(j,key)];
  a.haki=Object.keys(j.skills).some(k=>k.startsWith('haki_'))?'Yes':'No';
  a.hakiTypes=[['haki_observation','Observation'],['haki_armament','Armament'],['haki_conqueror','Conqueror’s']].filter(([key])=>key in j.skills).map(([,label])=>label).join(' + ');
- a.crewSize=String(j.crew.length);a.crewMode=j.groupSupport?'Join an existing group':j.crew.length?'Form your own group':'Go solo';
+ a.heritageStyles=(j.heritage?.styles||[]).join(' + ');a.crewSize=String(j.crew.length);a.crewMode=j.groupSupport?'Join an existing group':j.crew.length?'Form your own group':'Go solo';
  return a;
 }
 export function combatPower(j){
@@ -38,6 +50,7 @@ export function combatPower(j){
  n+=['haki_observation','haki_armament','haki_conqueror'].reduce((s,k)=>s+(k in j.skills?3+rank(k)*3:0),0);
  if(j.character.devilFruit==='Yes')n+=5+rank('fruitMastery')*3;
  n+=Object.keys(j.skills).filter(k=>k.startsWith('weaponMastery_')).reduce((s,k)=>s+1+rank(k),0);
+ const secondaryStyles=(j.heritage?.styles||[]).filter(style=>style!==j.character.fightingStyle);n+=Math.min(4,secondaryStyles.length*2);
  n+=Math.min((j.crew||[]).reduce((sum,member)=>sum+crewCombatContribution(member),0)+j.groupSupport*.8,6.4);
  n+=Math.min(j.crew.filter(c=>c.fruit).length,4)*1.5;
  for(const [key,name] of Object.entries(j.character).filter(([k])=>/^weapon_\d+$/.test(k))){const sword=swords.find(w=>w.value===name);n+=sword?(sword.weight<1?3:sword.weight<10?1:0):/Masterwork|Precision/.test(name)?2:0;}
@@ -330,11 +343,11 @@ export function applyJourneyRoll(j,value){
 export function rollJourney(j,random=Math.random){const s=nextJourneyStep(j);if(!s)return null;return applyJourneyRoll(j,weightedPick(s.options,random).value);}
 export function saveDocument(history,j){
  const base=characterDocument(history);
- return {...base,schemaVersion:SAVE_VERSION,character:j?liveCharacter(j):base.character,journey:j?{version:JOURNEY_VERSION,simulationCutover:j.simulationCutover??0,startLocationRollVersion:j.startLocationRollVersion??0,legacyRolls:j.rolls.slice(0,j.legacyCutover),rolls:j.rolls.slice(j.legacyCutover)}:null};
+ return {...base,schemaVersion:SAVE_VERSION,character:j?liveCharacter(j):base.character,journey:j?{version:JOURNEY_VERSION,simulationCutover:j.simulationCutover??0,startLocationRollVersion:j.startLocationRollVersion??0,heritageVersion:j.heritageVersion??0,legacyRolls:j.rolls.slice(0,j.legacyCutover),rolls:j.rolls.slice(j.legacyCutover)}:null};
 }
 function upgradeLegacy(history,rolls){
  const j=legacy.loadDocument({game:'Grand Line Origins',schemaVersion:2,history,journey:{version:1,rolls}}).journey;
- j.version=JOURNEY_VERSION;j.legacyCutover=j.rolls.length;j.legacyPending=!!j.pending;j.simulationCutover=0;j.startLocationRollVersion=0;j.startLocationResolved=true;initializeStory(j);ensureSimulation(j);return j;
+ j.version=JOURNEY_VERSION;j.legacyCutover=j.rolls.length;j.legacyPending=!!j.pending;j.simulationCutover=0;j.startLocationRollVersion=0;j.startLocationResolved=true;j.heritageVersion=0;j.heritage=heritageProfile(j.character);initializeStory(j);ensureSimulation(j);return j;
 }
 export function loadDocument(doc){
  if(!doc||doc.game!=='Grand Line Origins'||![1,2,SAVE_VERSION].includes(doc.schemaVersion))throw new Error('This is not a supported Grand Line Origins save.');
@@ -345,7 +358,8 @@ export function loadDocument(doc){
  }else if(doc.schemaVersion===SAVE_VERSION&&doc.journey){
  const old=doc.journey.legacyRolls;
  if(doc.journey.version!==JOURNEY_VERSION||!Array.isArray(doc.journey.rolls)||!Array.isArray(old)||doc.journey.rolls.length+old.length>20000)throw new Error('Invalid journey save.');
- journey=old.length?upgradeLegacy(history,old):createJourney(history);
+ const heritageVersion=Number.isInteger(doc.journey.heritageVersion)?doc.journey.heritageVersion:0;
+ journey=old.length?upgradeLegacy(history,old):createJourney(history,{heritageVersion});
  const startVersion=Number.isInteger(doc.journey.startLocationRollVersion)?doc.journey.startLocationRollVersion:0;
  if(!old.length){journey.startLocationRollVersion=startVersion;journey.startLocationResolved=startVersion===0;}
  const hasSimulationCutover=Number.isInteger(doc.journey.simulationCutover)&&doc.journey.simulationCutover>=0&&doc.journey.simulationCutover<=doc.journey.rolls.length;

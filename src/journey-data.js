@@ -47,13 +47,19 @@ export const INSTINCTS = options([
  ['Read the battlefield',5,'Adds 7 percentage points to controlled victory.'],
 ]);
 export const WORLD_EVENTS = options([
- ['Marine crackdown',20,'World danger rises; encounters become more frequent.'],
- ['An Emperor falls',8,'The power vacuum raises danger across the seas.'],
- ['An island is liberated',18,'The seas grow a little safer.'],
- ['Trade routes reopen',22,'Danger falls and trade brings a small dividend.'],
- ['Government amnesty',12,'Your government bounty is reduced.'],
- ['War engulfs a kingdom',15,'World danger rises sharply.'],
- ['A golden age of discovery',5,'A period of calmer seas and profitable exploration.'],
+ ['Marine crackdown',16,'Government control tightens. Marines become safer in controlled waters while outlaws face more scrutiny.'],
+ ['Buster Call authorized',3,'A government annihilation order creates an extreme local danger zone.'],
+ ['An island is eradicated',2,'A named island disappears from future travel routes in this alternate world.'],
+ ['A new World Government law',10,'A new law can permanently change faction risk at ports and islands.'],
+ ['A notorious pirate is executed',8,'A living canon pirate is removed from future encounter pools.'],
+ ['An Emperor falls',6,'The power vacuum destabilizes the balance of power.'],
+ ['A Revolutionary uprising',7,'Government control weakens and local conflict spreads.'],
+ ['A mass prison break',5,'Dangerous prisoners return to the seas and government control slips.'],
+ ['An island is liberated',12,'A local victory improves stability but weakens government control.'],
+ ['Trade routes reopen',12,'Stability improves and trade brings a small dividend.'],
+ ['Government amnesty',7,'Stability improves and your government bounty is reduced.'],
+ ['War engulfs a kingdom',9,'World stability falls sharply.'],
+ ['A golden age of discovery',3,'A calmer period improves stability and profitable exploration.'],
 ]);
 export const ROLES = ['Navigator','Doctor','Cook','Shipwright','Lookout','Helmsman','Fighter','Musician','Scholar','Quartermaster'];
 export const TREASURES = options([

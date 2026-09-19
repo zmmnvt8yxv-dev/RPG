@@ -85,15 +85,12 @@ function interpolate(a,b,t){return a+(b-a)*clamp(t,0,1);}
 export function effectiveDanger(j,context='general'){
  const s=ensureSimulation(j),kind=factionKind(j.character?.faction),stability=s.stability;
  let base;
- if(stability>=70){
-  const stable={government:.6,pirate:4.7,revolutionary:4.5,hunter:2.3,civilian:1.7};
-  const unstable={government:3,pirate:3.6,revolutionary:3.9,hunter:3,civilian:3};
-  base=interpolate(stable[kind],unstable[kind],(70-stability)/-30);
- }else{
-  const unstable={government:3,pirate:3.6,revolutionary:3.9,hunter:3,civilian:3};
-  const chaos={government:4.7,pirate:4.6,revolutionary:4.8,hunter:4.4,civilian:4.5};
-  base=interpolate(unstable[kind],chaos[kind],(40-stability)/40);
- }
+ const stable={government:.6,pirate:4.7,revolutionary:4.5,hunter:2.3,civilian:1.7};
+ const unstable={government:3,pirate:3.6,revolutionary:3.9,hunter:3,civilian:3};
+ const chaos={government:4.7,pirate:4.6,revolutionary:4.8,hunter:4.4,civilian:4.5};
+ if(stability>=70)base=stable[kind];
+ else if(stability>=40)base=interpolate(stable[kind],unstable[kind],(70-stability)/30);
+ else base=interpolate(unstable[kind],chaos[kind],(40-stability)/40);
  const tier=locationTier(j);
  base+=tier*(kind==='government'?.2:.35);
  const zone=Number(s.dangerZones[j.story?.location]||0);

@@ -100,9 +100,9 @@ function startingFactionWeight(character,loc){
  const faction=character?.faction||'Civilian',territory=loc.f||'neutral';
  const govt=['Marine','Cipher Pol'].includes(faction),pirate=faction==='Pirate',revolutionary=faction==='Revolutionary';
  if(territory==='neutral')return govt?1.35:pirate?1.5:revolutionary?1.45:2;
- if(['marines','world_government'].includes(territory))return govt?8:pirate?.16:revolutionary?.2:1.4;
- if(territory==='pirates')return pirate?7:govt?.18:revolutionary?.7:.65;
- if(territory==='revolutionary_army')return revolutionary?9:govt?.18:pirate?.65:1;
+ if(['marines','world_government'].includes(territory))return govt ? 8 : pirate ? .16 : revolutionary ? .2 : 1.4;
+ if(territory==='pirates')return pirate ? 7 : govt ? .18 : revolutionary ? .7 : .65;
+ if(territory==='revolutionary_army')return revolutionary ? 9 : govt ? .18 : pirate ? .65 : 1;
  return 1;
 }
 function startingStoryWeight(character,loc){

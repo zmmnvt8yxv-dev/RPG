@@ -1,4 +1,5 @@
-import {CANON,PLACES} from './story-data.js';
+import {CANON} from './story-data.js';
+import {WORLD_LOCATIONS,worldLocation,storyLocation,broadRegionIndex,staticDangerAt,regionName} from './world-data.js';
 import {eras} from './engine.js';
 
 const clamp=(n,min,max)=>Math.min(max,Math.max(min,n));
@@ -45,10 +46,7 @@ function factionKind(faction=''){
  if(/hunter/i.test(faction))return 'hunter';
  return 'civilian';
 }
-function locationTier(j){
- const place=PLACES.find(p=>p[0]===j.story?.location);
- return place?.[1]??0;
-}
+function locationTier(j){return broadRegionIndex(storyLocation(j)||j.story?.location);}
 export function ensureSimulation(j){
  if(!j.simulation){
   const inherited=Number.isFinite(j.danger)?j.danger:0;
@@ -63,10 +61,13 @@ export function ensureSimulation(j){
    crewDeaths:[],
    crewDepartures:[],
    worldFlags:[],
+   navigation:{basicLogPose:false,upgradedLogPose:false},
   };
  }
  if(!Array.isArray(j.simulation.activeLaws))j.simulation.activeLaws=[];
  if(!j.simulation.dangerZones||typeof j.simulation.dangerZones!=='object')j.simulation.dangerZones={};
+ if(!j.simulation.navigation||typeof j.simulation.navigation!=='object')j.simulation.navigation={basicLogPose:false,upgradedLogPose:false};
+ const mapped=storyLocation(j);if(mapped?.region==='paradise')j.simulation.navigation.basicLogPose=true;
  for(const key of ['destroyedLocations','executions','crewDeaths','crewDepartures','worldFlags'])if(!Array.isArray(j.simulation[key]))j.simulation[key]=[];
  j.crew=(j.crew||[]).map(c=>({
   ...c,
@@ -83,7 +84,7 @@ export function worldUnrestLevel(j){
 }
 function interpolate(a,b,t){return a+(b-a)*clamp(t,0,1);}
 export function effectiveDanger(j,context='general'){
- const s=ensureSimulation(j),kind=factionKind(j.character?.faction),stability=s.stability;
+ const s=ensureSimulation(j),kind=factionKind(j.character?.faction),stability=s.stability,location=storyLocation(j);
  let base;
  const stable={government:.6,pirate:4.7,revolutionary:4.5,hunter:2.3,civilian:1.7};
  const unstable={government:3,pirate:3.6,revolutionary:3.9,hunter:3,civilian:3};
@@ -91,32 +92,34 @@ export function effectiveDanger(j,context='general'){
  if(stability>=70)base=stable[kind];
  else if(stability>=40)base=interpolate(stable[kind],unstable[kind],(70-stability)/30);
  else base=interpolate(unstable[kind],chaos[kind],(40-stability)/40);
- const tier=locationTier(j);
- base+=tier*(kind==='government'?.2:.35);
- const zone=Number(s.dangerZones[j.story?.location]||0);
- base+=zone*.35;
+ const tier=locationTier(j);base+=tier*(kind==='government'?.2:.35);
+ const territory=location?.faction||'neutral';
+ if(['marines','world_government'].includes(territory))base+=kind==='government'?-.55:['pirate','revolutionary'].includes(kind)?.75:.15;
+ if(territory==='pirates')base+=kind==='government'?.8:kind==='pirate'?-.55:.15;
+ if(territory==='revolutionary_army')base+=kind==='government'?.8:kind==='revolutionary'?-.55:.15;
+ const staticZone=staticDangerAt(location);base+=staticZone*.16;
+ const dynamic=Number(s.dangerZones[location?.id]??s.dangerZones[location?.name]??0);base+=dynamic*.35;
  const bounty=Number(j.bounty||0);
  if(kind!=='government'&&bounty>=10000000)base+=.25;
  if(kind!=='government'&&bounty>=100000000)base+=.25;
- for(const id of s.activeLaws){
-  const law=WORLD_LAWS.find(x=>x.id===id);if(!law)continue;
-  base+=kind==='government'?law.governmentDanger:law.outlawDanger;
- }
+ for(const id of s.activeLaws){const law=WORLD_LAWS.find(x=>x.id===id);if(law)base+=kind==='government'?law.governmentDanger:law.outlawDanger;}
  if(context==='combat')base+=.15;
- if(context==='travel')base+=tier*.1;
+ if(context==='travel')base+=tier*.1+staticZone*.08;
  return clamp(round1(base),0,5);
 }
 export function dangerExplanation(j){
- const s=ensureSimulation(j),kind=factionKind(j.character?.faction);
+ const s=ensureSimulation(j),kind=factionKind(j.character?.faction),loc=storyLocation(j);
  const labels={government:'Government-aligned',pirate:'Pirate',revolutionary:'Revolutionary',hunter:'Bounty hunter',civilian:'Independent'};
- return `${labels[kind]} risk at ${j.story?.location||'the current location'}: ${effectiveDanger(j)}/5 · world stability ${Math.round(s.stability)}/100.`;
+ const territory=loc?.faction&&loc.faction!=='neutral'?` · ${loc.faction.replaceAll('_',' ')} territory`:'';
+ return `${labels[kind]} risk at ${loc?.name||j.story?.location||'the current location'} (${regionName(loc)}): ${effectiveDanger(j)}/5 · world stability ${Math.round(s.stability)}/100${territory}.`;
 }
 export function routeDangerScore(route={},faction=''){
- const raw=Number(route.danger_score??route.danger_level??0);
- let score=raw>5?raw/20:raw;
- const access=String(route.faction_access??route.faction??'').toLowerCase();
- if(access&&faction&&!access.includes(String(faction).toLowerCase()))score+=.75;
- const outcome=Number(route.outcome_chance||0);if(Number.isFinite(outcome))score+=clamp(outcome/100,0,.5);
+ const raw=Number(route.danger??route.danger_score??route.danger_level??0);
+ let score=clamp(raw,0,5);
+ const access=String(route.factionAccess??route.faction_access??route.faction??'').toLowerCase();
+ if(access&&!['public','neutral',''].includes(access)&&faction&&!access.includes(String(faction).toLowerCase()))score+=.75;
+ const outcome=Number(route.outcomeChance??route.outcome_chance??0);
+ if(Number.isFinite(outcome)&&outcome>0)score+=clamp(outcome<=1?outcome*1.5:outcome/100*1.5,0,1);
  return clamp(round1(score),0,5);
 }
 export function worldEventPool(j,base){
@@ -142,11 +145,10 @@ function addLaw(s,seed){
  return law;
 }
 function chooseErasedLocation(j,seed){
- const s=ensureSimulation(j),current=j.story?.location;
- const sameTier=locationTier(j);
- let pool=PLACES.filter(p=>p[0]!==current&&!s.destroyedLocations.includes(p[0])&&p[1]===sameTier);
- if(!pool.length)pool=PLACES.filter(p=>p[0]!==current&&!s.destroyedLocations.includes(p[0]));
- return pool.length?pool[Math.floor(unit(seed)*pool.length)][0]:null;
+ const s=ensureSimulation(j),current=storyLocation(j),destroyed=new Set(s.destroyedLocations);
+ let pool=WORLD_LOCATIONS.filter(x=>x.id!==current?.id&&!destroyed.has(x.id)&&!destroyed.has(x.name)&&['island','port','sky_island'].includes(x.type)&&x.importance!=='critical'&&x.region===current?.region);
+ if(!pool.length)pool=WORLD_LOCATIONS.filter(x=>x.id!==current?.id&&!destroyed.has(x.id)&&!destroyed.has(x.name)&&['island','port','sky_island'].includes(x.type)&&x.importance!=='critical');
+ return pool.length?pool[Math.floor(unit(seed)*pool.length)]:null;
 }
 function choosePirateForExecution(j,seed){
  const era=eras.indexOf(j.character?.era),crewNames=new Set((j.crew||[]).map(c=>c.name));
@@ -164,12 +166,12 @@ export function applyWorldEvent(j,value,effects=[]){
  else if(value==='War engulfs a kingdom'){shift(-14,-5);addFlag(s,'kingdom-war');}
  else if(value==='A golden age of discovery'){shift(12,-2);j.berries=Math.max(0,(j.berries||0)+15000);effects.push('Exploration and trade add ฿ 15,000 to your purse.');}
  else if(value==='Buster Call authorized'){
-  shift(-16,7);const place=j.story?.location;s.dangerZones[place]=Math.max(Number(s.dangerZones[place]||0),5);addFlag(s,'buster-call-active');
-  effects.push(`A Buster Call turns the waters around ${place} into a 5/5 local danger zone.`);
+  shift(-16,7);const place=storyLocation(j),key=place?.id||j.story?.location;s.dangerZones[key]=Math.max(Number(s.dangerZones[key]||0),5);addFlag(s,'buster-call-active');
+  effects.push(`A Buster Call turns the waters around ${place?.name||j.story?.location} into a 5/5 local danger zone.`);
  }
  else if(value==='An island is eradicated'){
   shift(-20,5);const target=chooseErasedLocation(j,seed);
-  if(target){s.destroyedLocations.push(target);s.dangerZones[target]=5;effects.push(`${target} is erased from navigable routes in this alternate world.`);}
+  if(target){s.destroyedLocations.push(target.id);s.dangerZones[target.id]=5;effects.push(`${target.name} is erased from navigable routes in this alternate world.`);}
  }
  else if(value==='A new World Government law'){
   shift(-4,5);const law=addLaw(s,seed);if(law)effects.push(`New law: ${law.label}.`);
@@ -247,12 +249,11 @@ export function resolveCrewTurns(j,months=4,event=''){
  return effects;
 }
 export function simulationSummary(j){
- const s=ensureSimulation(j);
+ const s=ensureSimulation(j),loc=storyLocation(j);
  return {
-  stability:Math.round(s.stability),
-  danger:effectiveDanger(j),
-  unrest:worldUnrestLevel(j),
+  stability:Math.round(s.stability),danger:effectiveDanger(j),unrest:worldUnrestLevel(j),
   laws:s.activeLaws.map(id=>WORLD_LAWS.find(l=>l.id===id)?.label||id),
-  destroyed:[...s.destroyedLocations],
+  destroyed:s.destroyedLocations.map(x=>worldLocation(x)?.name||x),
+  location:loc?.name||j.story?.location,region:regionName(loc),territory:loc?.faction||'neutral',
  };
 }

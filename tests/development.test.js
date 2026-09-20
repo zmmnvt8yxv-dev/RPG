@@ -93,7 +93,7 @@ test('crew specialties affect their advertised wheels and disappear when their o
 });
 
 test('pre-intent saves replay exactly and finish an already-started saga without inserting a choice',()=>{
- for(const {doc,expected} of JSON.parse(readFileSync(new URL('./fixtures/pre-intent.json',import.meta.url)))){const j=loadDocument(doc).journey;assert.equal(j.developmentCutover,doc.journey.rolls.length);const copy=structuredClone(j);delete copy.developmentCutover;delete copy.territoryCutover;assert.deepEqual(JSON.parse(JSON.stringify(copy)),expected);assert.deepEqual(loadDocument(saveDocument(doc.history,j)).journey,j);
+ for(const {doc,expected} of JSON.parse(readFileSync(new URL('./fixtures/pre-intent.json',import.meta.url)))){const j=loadDocument(doc).journey;assert.equal(j.developmentCutover,doc.journey.rolls.length);const copy=structuredClone(j);delete copy.developmentCutover;delete copy.territoryCutover;delete copy.voyageCutover;assert.deepEqual(JSON.parse(JSON.stringify(copy)),expected);assert.deepEqual(loadDocument(saveDocument(doc.history,j)).journey,j);
  if(j.pending){assert.equal(nextJourneyStep(j).key,'sagaChoice');applyJourneyRoll(j,'0');}
  assert(developmentEnabled(j));pick(j,'event','saga');pick(j,'sagaId','blackchart');assert.equal(nextJourneyStep(j).kind,'choice');
  }

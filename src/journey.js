@@ -1,3 +1,4 @@
+import {voyageEnabled,voyagePressure,islandActions} from './voyage.js';
 import {campaignPool,campaignIntents,campaignOutcomes,resolveCampaign,CROSSROAD_BY_ID,territoryIntents,territoryOutcomes,resolveTerritory} from './crossroads.js';
 import {crewStoryPool,crewIntents,crewOutcomes,resolveCrewStory,crewPerkFactor,hasCrewPerk} from './crew-stories.js';
 import {developmentEnabled,canImprove,availablePractice,filterGrowthRewards,INTENTS,intentWeight} from './development.js';
@@ -39,7 +40,7 @@ export function createJourney(history,{heritageVersion=1}={}){
  const heritage=applyHeritage(character,skills,heritageVersion>=1);
  const crew=[];if(character.crewMode==='Form your own group')for(let i=1;i<=Number(character.crewSize);i++)crew.push({name:character[`member_${i}_canon`]||character[`member_${i}_generated`],role:character[`member_${i}_role`]||'Canon ally',race:character[`member_${i}_race`]||'Canon',canon:character[`member_${i}_origin`]==='Canon character'});
  const j={version:JOURNEY_VERSION,character,skills,heritageVersion,heritage,crew,group:character.joinedCrew||character.crewName||null,groupSupport:character.joinedCrew?3:0,startAgeMonths:Number(character.age)*12,ageMonths:Number(character.age)*12,elapsedMonths:0,alive:true,cause:null,chapter:0,pending:null,rolls:[],log:[],injury:0,captured:false,berries:0,bounty:Number((character.bounty||'').replace(/\D/g,''))||0,inventory:[],danger:0,wins:0,losses:0,kills:0,discoveries:0,recruits:0,peakPower:0,startLocationRollVersion:1,startLocationResolved:false};
- j.territoryCutover=0;j.developmentCutover=0;j.sagaCutover=0;j.peakPower=combatPower(j);j.legacyCutover=0;j.legacyPending=false;j.simulationCutover=0;initializeStory(j);ensureSimulation(j);return j;
+ j.voyageCutover=0;j.territoryCutover=0;j.developmentCutover=0;j.sagaCutover=0;j.peakPower=combatPower(j);j.legacyCutover=0;j.legacyPending=false;j.simulationCutover=0;initializeStory(j);ensureSimulation(j);return j;
 }
 export function liveCharacter(j){
  const a={...j.character,age:ageLabel(j.ageMonths),bounty:j.bounty?money(j.bounty):(j.character.bounty==='No government bounty'?'No government bounty':'No bounty yet')};
@@ -102,7 +103,7 @@ function territoryEvents(j,events){
 export function eventPool(j){
  if(j.captured)return pool([['prison','Months in captivity',65],['prisonBreak','An opening to escape',35]]);
  const dev=developmentEnabled(j),hasTraining=trainingPool(j).length>0;
- const danger=effectiveDanger(j);return territoryEvents(j,shapeEvents(j,[...(campaignPool(j).length?[['crossroads','Change the course of history',8]]:[]),...(crewStoryPool(j).length?[['crewStory','A companion’s unfinished dream',10]]:[]),...(dev&&territoryIntents(j).length?[['territory','Your territory needs you',9]]:[]),...(techniquePool(j).length?[['technique','Develop an advanced technique',7]]:[]),...(sagaPool(j).length?[['saga','A promise becomes a saga',18]]:[]),...EVENTS].filter(([id])=>!(dev&&!hasTraining&&['training','mentor','spar','timeskip'].includes(id))&&!(dev&&id==='weapon'&&!weaponPool(j).length)&&!(id==='provisions'&&!j.inventory.some(i=>i.type==='fruit'))&&!(id==='spar'&&!j.crew.length&&!j.groupSupport)&&!(id==='betrayal'&&!j.crew.length&&!j.groupSupport)&&!(id==='hunters'&&!j.bounty)&&!(id==='recruit'&&!companionPool(j).length)&&!(id==='haki'&&['haki_observation','haki_armament','haki_conqueror'].every(k=>k in j.skills))).map(([value,label,weight])=>opt(value,label,weight*(COMBAT_EVENTS.includes(value)?1+danger*.18:1)))));
+ const danger=effectiveDanger(j);return voyagePressure(j,territoryEvents(j,shapeEvents(j,[...(campaignPool(j).length?[['crossroads','Change the course of history',8]]:[]),...(crewStoryPool(j).length?[['crewStory','A companion’s unfinished dream',10]]:[]),...(dev&&territoryIntents(j).length?[['territory','Your territory needs you',9]]:[]),...(techniquePool(j).length?[['technique','Develop an advanced technique',7]]:[]),...(sagaPool(j).length?[['saga','A promise becomes a saga',18]]:[]),...EVENTS].filter(([id])=>!(dev&&!hasTraining&&['training','mentor','spar','timeskip'].includes(id))&&!(dev&&id==='weapon'&&!weaponPool(j).length)&&!(id==='provisions'&&!j.inventory.some(i=>i.type==='fruit'))&&!(id==='spar'&&!j.crew.length&&!j.groupSupport)&&!(id==='betrayal'&&!j.crew.length&&!j.groupSupport)&&!(id==='hunters'&&!j.bounty)&&!(id==='recruit'&&!companionPool(j).length)&&!(id==='haki'&&['haki_observation','haki_armament','haki_conqueror'].every(k=>k in j.skills))).map(([value,label,weight])=>opt(value,label,weight*(COMBAT_EVENTS.includes(value)?1+danger*.18:1))))));
 }
 export function trainingPool(j){return trainingWeights(j,Object.keys(j.skills).filter(k=>j.skills[k]<XP_LEVELS[trackFor(k).length-1]).map(k=>opt(k,skillLabel(k),k.startsWith('haki_')?2:5)));}
 function heldFruitNames(j){return [j.character.fruit,...j.crew.map(c=>c.fruit),...j.inventory.filter(i=>i.type==='fruit').map(i=>i.name)].filter(Boolean);}
@@ -128,7 +129,7 @@ export function nextJourneyStep(j){
  if(!j.alive)return null;
  if(!j.startLocationResolved)return {id:'0:startLocation',key:'startLocation',label:'Where does your journey begin?',group:'Journey Setup',options:startingLocationPool(j),note:'This zero-time spin locks your real QGIS starting point before Chapter 1. Faction, family, crew affiliation and age influence the odds.'};
  const p=j.pending;const make=(key,label,opts,note='',extras={})=>({id:`${j.chapter+1}:${key}`,key,label,group:'Journey',options:opts.map(o=>{const f=crewPerkFactor(j,j.pending?.event,o.value);return {...o,weight:o.weight*f,...(f!==1?{note:`${o.note||''} Crew specialty: outcome weight ×${f}.`}:{})};}),note,...extras});
- if(!p)return make('event','What lies on the horizon?',eventPool(j),(hostileTerritory(j)?'Enemy territory: Marine patrols block ordinary training, trade, and social life. Find loot, confront pursuit, carry out a mission, or sail away. ':'')+'One event = four months. Follow-up wheels resolve that same period. Time skips state their own duration.');
+ if(!p)return make('event','What lies on the horizon?',eventPool(j),(voyageEnabled(j)&&islandActions(j)>=3?`${islandActions(j)} chapters here · travel reaches 70% after four, then rises toward 95%. `:'')+(hostileTerritory(j)?'Enemy territory: Marine patrols block ordinary training, trade, and social life. Find loot, confront pursuit, carry out a mission, or sail away. ':'')+'One event = four months. Follow-up wheels resolve that same period. Time skips state their own duration.');
  if(p.phase==='aging'){
  const risk=naturalDeathChance(j.character.race,p.startAge,p.months);
  return make('aging','Does time finally catch up?',risk>=100?options([['Death from old age',1]]):options([['Live to see another chapter',100-risk],['Death from old age',risk]]),`Age ${ageLabel(p.startAge)} → ${ageLabel(j.ageMonths)}. ${p.months} months of aging are counted, including time skips. ${j.character.race} longevity is a game estimate, not a canon statistic.`);
@@ -168,7 +169,7 @@ export function nextJourneyStep(j){
  if(developmentEnabled(j)&&!a.sagaIntent)return choice('sagaIntent','What matters most in this story?',INTENTS.saga,'Your intent weights the possible consequences. Nothing is guaranteed.');
  const scene=sagaScene(j,a.sagaId);return make('sagaChoice',scene.title,sagaOptions(j,a.sagaId),`${scene.text} Fate resolves your intent; each result advances this thread or writes its ending. This scene takes the usual four months.`);
  }
- if(event==='travel')return make('destination','Which shore calls you next?',travelPool(j),'Nearby waters are common; stronger, prepared travelers are more likely to push onward.');
+ if(event==='travel')return make('destination','Which shore calls you next?',travelPool(j),voyageEnabled(j)?'Follow your sea route: the Blues → Reverse Mountain → Paradise → Sabaody → Fish-Man Island → the New World → Lodestar. Destination notes explain each passage.':'Nearby waters are common; stronger, prepared travelers are more likely to push onward.');
  if(event==='dream'){
  const d=dreamOf(j),r=dreamReadiness(j);
  return make('dreamResult',j.story.dreamProgress>=4?'A fulfilled dream can still change lives':d.steps[j.story.dreamProgress],dreamOutcomePool(j),r.ready?'Your experience has put this milestone within reach. Fate decides whether the work pays off.':`Still needed: ${r.needs.join('; ')}. A useful lead can be found while you prepare.`);
@@ -262,7 +263,7 @@ function settle(j,result){
  if(event==='territory')e.push(...resolveTerritory(j,result.value));
  if(event==='technique')e.push(...resolveTechnique(j,result.value));
  if(event==='saga')e.push(...resolveSaga(j,a.sagaId,result.value));
- if(event==='travel'){const from=worldLocationOf(j),to=resolveWorldLocation(result.value);if(to){const route=routeFromTo(from.id,to.id);j.story.locationId=to.id;j.story.location=to.n;if(!j.story.visited.includes(to.n))j.story.visited.push(to.n);e.push(route?`Sailed ${from.n} → ${to.n} by ${String(route.u||route.t).replaceAll('_',' ')}${route.d?` in about ${route.d} days`:''}. Route danger ${route.z??'unrated'}.`:`Sailed open water from ${from.n} to ${to.n}.`);e.push(`Arrived in ${regionLabel(to.r)} · ${to.f==='neutral'?'neutral waters':String(to.f).replaceAll('_',' ')}.`);}else{j.story.location=result.value;if(!j.story.visited.includes(result.value))j.story.visited.push(result.value);}}
+ if(event==='travel'){const from=worldLocationOf(j),to=resolveWorldLocation(result.value);if(to){const route=routeFromTo(from.id,to.id);if(voyageEnabled(j))e.push(result.note);j.story.locationId=to.id;j.story.location=to.n;if(!j.story.visited.includes(to.n))j.story.visited.push(to.n);if(voyageEnabled(j))e.push(`Sailed ${from.n} → ${to.n}.`);else e.push(route?`Sailed ${from.n} → ${to.n} by ${String(route.u||route.t).replaceAll('_',' ')}${route.d?` in about ${route.d} days`:''}. Route danger ${route.z??'unrated'}.`:`Sailed open water from ${from.n} to ${to.n}.`);e.push(`Arrived in ${regionLabel(to.r)} · ${to.f==='neutral'?'neutral waters':String(to.f).replaceAll('_',' ')}.`);}else{j.story.location=result.value;if(!j.story.visited.includes(result.value))j.story.visited.push(result.value);}}
  if(event==='dream'){
  const d=dreamOf(j);
  if(result.value==='commission'){j.character.faction='Marine';j.bounty=0;j.group='Marine training unit';j.groupSupport=3;e.push('Your new Marine path begins with training, not a high rank.');}
@@ -361,7 +362,7 @@ export function applyJourneyRoll(j,value,{choice=false}={}){
  if(j.legacyPending){const record=legacy.applyJourneyRoll(j,value);j.legacyCutover=j.rolls.length;if(!j.pending){j.legacyPending=false;delete j.story;initializeStory(j);ensureSimulation(j);}return record;}
  const s=nextJourneyStep(j);if(!s)throw new Error('This journey has ended.');
  if((s.kind==='choice')!==choice)throw new Error(s.kind==='choice'?'Choose an intent before spinning.':'This stage requires a fate roll.');
- const development=developmentEnabled(j);
+ const development=developmentEnabled(j),voyage=voyageEnabled(j);
  const selected=s.options.find(o=>o.value===value);if(!selected)throw new Error('That result is not available on this wheel.');
  const record={id:s.id,value,label:selected.label,chance:probability(s.options,value),wheel:s.label,...(s.modifier?{modifier:{...s.modifier}}:{})};
  j.rolls.push({id:s.id,value,...(choice?{kind:'choice'}:{})});
@@ -372,7 +373,7 @@ export function applyJourneyRoll(j,value,{choice=false}={}){
   return record;
  }
  if(s.key==='event'){
- j.pending={...(development?{developmentVersion:1}:{}),event:value,location:j.story.location,narrative:chapterPremise(j,value),startAge:j.ageMonths,months:0,picks:{},phase:'event',effects:[],rolls:[record]};return record;
+ j.pending={...(voyage?{voyageVersion:1}:{}),...(development?{developmentVersion:1}:{}),event:value,location:j.story.location,narrative:chapterPremise(j,value),startAge:j.ageMonths,months:0,picks:{},phase:'event',effects:[],rolls:[record]};return record;
  }
  const p=j.pending;p.rolls.push(record);
  if(s.key==='aging'){
@@ -393,11 +394,11 @@ export function applyJourneyChoice(j,value){return applyJourneyRoll(j,value,{cho
 export function rollJourney(j,random=Math.random){const s=nextJourneyStep(j);if(!s)return null;return applyJourneyRoll(j,weightedPick(s.options,random).value,{choice:s.kind==='choice'});}
 export function saveDocument(history,j){
  const base=characterDocument(history);
- return {...base,schemaVersion:SAVE_VERSION,character:j?liveCharacter(j):base.character,journey:j?{version:JOURNEY_VERSION,territoryCutover:j.territoryCutover??0,developmentCutover:j.developmentCutover??0,sagaCutover:j.sagaCutover??0,simulationCutover:j.simulationCutover??0,startLocationRollVersion:j.startLocationRollVersion??0,heritageVersion:j.heritageVersion??0,legacyRolls:j.rolls.slice(0,j.legacyCutover),rolls:j.rolls.slice(j.legacyCutover)}:null};
+ return {...base,schemaVersion:SAVE_VERSION,character:j?liveCharacter(j):base.character,journey:j?{version:JOURNEY_VERSION,voyageCutover:j.voyageCutover??0,territoryCutover:j.territoryCutover??0,developmentCutover:j.developmentCutover??0,sagaCutover:j.sagaCutover??0,simulationCutover:j.simulationCutover??0,startLocationRollVersion:j.startLocationRollVersion??0,heritageVersion:j.heritageVersion??0,legacyRolls:j.rolls.slice(0,j.legacyCutover),rolls:j.rolls.slice(j.legacyCutover)}:null};
 }
 function upgradeLegacy(history,rolls){
  const j=legacy.loadDocument({game:'Grand Line Origins',schemaVersion:2,history,journey:{version:1,rolls}}).journey;
- j.territoryCutover=0;j.developmentCutover=0;j.sagaCutover=0;j.version=JOURNEY_VERSION;j.legacyCutover=j.rolls.length;j.legacyPending=!!j.pending;j.simulationCutover=0;j.startLocationRollVersion=0;j.startLocationResolved=true;j.heritageVersion=0;j.heritage=heritageProfile(j.character);initializeStory(j);ensureSimulation(j);return j;
+ j.voyageCutover=0;j.territoryCutover=0;j.developmentCutover=0;j.sagaCutover=0;j.version=JOURNEY_VERSION;j.legacyCutover=j.rolls.length;j.legacyPending=!!j.pending;j.simulationCutover=0;j.startLocationRollVersion=0;j.startLocationResolved=true;j.heritageVersion=0;j.heritage=heritageProfile(j.character);initializeStory(j);ensureSimulation(j);return j;
 }
 export function loadDocument(doc){
  if(!doc||doc.game!=='Grand Line Origins'||![1,2,SAVE_VERSION].includes(doc.schemaVersion))throw new Error('This is not a supported Grand Line Origins save.');
@@ -410,6 +411,9 @@ export function loadDocument(doc){
  if(doc.journey.version!==JOURNEY_VERSION||!Array.isArray(doc.journey.rolls)||!Array.isArray(old)||doc.journey.rolls.length+old.length>20000)throw new Error('Invalid journey save.');
  const heritageVersion=Number.isInteger(doc.journey.heritageVersion)?doc.journey.heritageVersion:0;
  journey=old.length?upgradeLegacy(history,old):createJourney(history,{heritageVersion});
+ const voyageCutover=doc.journey.voyageCutover;
+ if(voyageCutover!==undefined&&(!Number.isInteger(voyageCutover)||voyageCutover<0||voyageCutover>doc.journey.rolls.length))throw new Error('Invalid voyage cutover.');
+ journey.voyageCutover=voyageCutover??doc.journey.rolls.length;
  const territoryCutover=doc.journey.territoryCutover;
  if(territoryCutover!==undefined&&(!Number.isInteger(territoryCutover)||territoryCutover<0||territoryCutover>doc.journey.rolls.length))throw new Error('Invalid territory cutover.');
  journey.territoryCutover=territoryCutover??doc.journey.rolls.length;

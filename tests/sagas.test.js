@@ -63,7 +63,7 @@ test('capture hands control to prison; refuges and archives affect future ordina
 test('historical saves preserve exact outcomes and probabilities before expansion cutover',()=>{
  const fixtures=JSON.parse(readFileSync(new URL('./fixtures/pre-saga.json',import.meta.url)));
  for(const {doc,expected} of fixtures){const j=loadDocument(doc).journey;assert.equal(j.sagaCutover,doc.journey.rolls.length);
- const canonical=structuredClone(j);delete canonical.sagaCutover;delete canonical.developmentCutover;delete canonical.territoryCutover;assert.deepEqual(JSON.parse(JSON.stringify(canonical)),expected);
+ const canonical=structuredClone(j);delete canonical.sagaCutover;delete canonical.developmentCutover;delete canonical.territoryCutover;delete canonical.voyageCutover;assert.deepEqual(JSON.parse(JSON.stringify(canonical)),expected);
  assert.deepEqual(loadDocument(saveDocument(doc.history,j)).journey,j);
  if(j.pending){while(j.pending){const s=nextJourneyStep(j);applyJourneyRoll(j,s.options[0].value);}}
  assert(eventPool(j).some(o=>o.value==='saga'));

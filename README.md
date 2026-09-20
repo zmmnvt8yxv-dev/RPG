@@ -149,3 +149,5 @@ The app works without network services after assets are loaded. Google Fonts is 
 - `tests/engine.test.js` / `tests/journey.test.js` / `tests/legacy-journey.test.js` — origin and lifetime invariant tests.
 
 One Piece belongs to Eiichiro Oda and its respective rights holders. This is an unofficial fan project.
+
+Pirates in Marine or World Government territory have a restricted horizon: confront or evade patrols, face bounty hunters, find loot or weapons, sail away, or pursue available story operations. Training, ordinary trade, recruitment, and celebrations return outside hostile territory. A hidden refuge permits recovery; liberated territory restores normal options. Other pirate flags are not automatically enemies. Older saves retain their recorded outcomes and finish pending chapters under their original rules.

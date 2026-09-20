@@ -1,7 +1,8 @@
+import {renderDevelopment} from './development-view.js';
 import {renderSagaJournal} from './saga-view.js';
 import {SAGA_BY_ID} from './sagas.js';
 import {nextStep,roll,values,fullName,probability} from './engine.js';
-import {createJourney,nextJourneyStep,applyJourneyRoll,saveDocument,loadDocument,liveCharacter,combatPower,ageLabel,money,levelOf,trackFor,skillLabel,lifespanFor} from './journey.js';
+import {createJourney,nextJourneyStep,applyJourneyRoll,applyJourneyChoice,saveDocument,loadDocument,liveCharacter,combatPower,ageLabel,money,levelOf,trackFor,skillLabel,lifespanFor} from './journey.js';
 import {XP_LEVELS,EVENT_BY_ID} from './journey-data.js';
 import {heritageProfile} from './data.js';
 import {weightedPick} from './engine.js';
@@ -40,7 +41,7 @@ function sheet(){
  const a=journey?liveCharacter(journey):values(history);
  $('characterName').textContent=fullName(a);$('characterMeta').textContent=[a.race,a.age?`Age ${a.age}`:'',a.faction].filter(Boolean).join(' · ')||'An open sea. An unwritten name.';
  $('bounty').textContent=a.bounty||'YOUR ORIGIN AWAITS';$('posterTitle').textContent=journey&&!journey.alive?'A LIFE REMEMBERED':['Pirate','Revolutionary'].includes(a.faction)?'WANTED':a.faction?'PERSONNEL FILE':'A STORY UNTOLD';
- $('rollCount').textContent=journey?`${journey.rolls.length} journey spins`:`${history.length} rolls`;$('sheetEmpty').hidden=!!history.length;
+ $('rollCount').textContent=journey?`${journey.rolls.length} journey steps`:`${history.length} rolls`;$('sheetEmpty').hidden=!!history.length;
  let records=history.map(h=>({...h,value:a[h.id]??h.value}));
  if(journey){
  records=records.filter(h=>h.group!=='Crew');
@@ -55,12 +56,12 @@ function sheet(){
  const j=journey,startPending=!j.startLocationResolved,sim=simulationSummary(j),map=worldMapSummary(j);const elapsed=`${Math.floor(j.elapsedMonths/12)}y ${j.elapsedMonths%12}m`;
  $('chapters').innerHTML=`<b>02 / THE JOURNEY</b><span>ALTERNATE WORLD · FATE DRIVEN</span><span>${startPending?'ZERO-TIME STARTING POINT':j.alive?'FOUR MONTHS PER EVENT':'THE FINAL CHAPTER'}</span>`;
  $('journeyStatus').innerHTML=[['CHAPTER',startPending?'SETUP':j.chapter+(j.pending?1:0)],['CURRENT AGE',ageLabel(j.ageMonths)],['TIME AT SEA',elapsed],['CONDITION',!j.alive?'Deceased':j.captured?'Captured':j.injury?`Injured · ${j.injury}/5`:'Healthy']].map(([label,v])=>`<div><small>${label}</small><strong ${label==='CONDITION'&&(!j.alive||j.captured||j.injury)?'class="status-danger"':''}>${esc(v)}</strong></div>`).join('');
- $('journeySheet').innerHTML=`<section class="sheet-group"><h3>LIFE AT SEA</h3><dl>${row('Combat rating',combatPower(j))}${j.heritageVersion?row('Heritage bonuses',heritageView.bonuses||'None',heritageView.haki?`Guaranteed ${heritageView.haki}`:'Applied at embarkation'):''}${heritageView.styles?row('Heritage style',heritageView.styles,'Secondary proficiency; your rolled primary style is preserved.'):''}${row('Berries',money(j.berries))}${row('Faction danger',startPending?'Pending starting point':`${sim.danger}/5`)}${row('World stability',`${sim.stability}/100`)}${row('World unrest',`${sim.unrest}/5`)}${row('Wins / losses',`${j.wins} / ${j.losses}`)}${row('Opponents killed',j.kills)}${row('Group',j.group||'Traveling alone')}${row('Current island',startPending?'Not yet rolled':j.story.location)}${row('Map region',startPending?'Not yet rolled':map.region)}${row('Territory',startPending?'Not yet rolled':String(map.location.f||'neutral').replaceAll('_',' '))}${row('Climate',startPending?'Not yet rolled':String(map.location.c||'unspecified').replaceAll('_',' '))}${row('Authored exits',startPending?'—':map.routes)}${row('Dream milestones',`${j.story.dreamProgress}/4`)}${row('Legacy',j.story.legacy)}${row('Group support',j.groupSupport?'Existing group support +3':'Named companions only')}</dl></section><section class="sheet-group journey-skills"><h3>PRACTICE & GROWTH</h3>${Object.keys(j.skills).map(k=>{const rank=levelOf(j,k),track=trackFor(k),max=rank===track.length-1,low=XP_LEVELS[rank],high=XP_LEVELS[rank+1]||low;return `<div class="skill-track"><div><span>${esc(skillLabel(k))}</span><small>${esc(track[rank])}</small></div><progress max="${max?1:high-low}" value="${max?1:j.skills[k]-low}" aria-label="${esc(skillLabel(k))} progress"></progress><small>${max?'Maximum mastery':`${j.skills[k]-low} / ${high-low} practice to ${esc(track[rank+1])}`}</small></div>`;}).join('')}</section><section class="sheet-group"><h3>INVENTORY</h3>${j.inventory.length?j.inventory.map(i=>`<div class="crew-person">${esc(i.name)}${i.count>1?` × ${i.count}`:''}<small>${esc(i.type)}</small></div>`).join(''):'<p class="empty-state">Nothing carried yet.</p>'}</section><section class="sheet-group"><h3>COMPANIONS · ${j.crew.length}</h3>${j.crew.length?j.crew.map(c=>`<div class="crew-person">${esc(c.name)}<small>${esc(c.role)}${c.fruit?` · ${esc(c.fruit)}`:''} · Power ${esc(c.power??10)} · Loyalty ${esc(c.loyalty??55)}/100${c.injury?` · Injury ${esc(c.injury)}/5`:''}</small></div>`).join(''):`<p class="empty-state">${j.groupSupport?'Your existing group provides support. No named recruits yet.':'You travel without companions.'}</p>`}</section>`;
+ $('journeySheet').innerHTML=`<section class="sheet-group"><h3>LIFE AT SEA</h3><dl>${row('Combat rating',combatPower(j))}${j.heritageVersion?row('Heritage bonuses',heritageView.bonuses||'None',heritageView.haki?`Guaranteed ${heritageView.haki}`:'Applied at embarkation'):''}${heritageView.styles?row('Heritage style',heritageView.styles,'Secondary proficiency; your rolled primary style is preserved.'):''}${row('Berries',money(j.berries))}${row('Faction danger',startPending?'Pending starting point':`${sim.danger}/5`)}${row('World stability',`${sim.stability}/100`)}${row('World unrest',`${sim.unrest}/5`)}${row('Wins / losses',`${j.wins} / ${j.losses}`)}${row('Opponents killed',j.kills)}${row('Group',j.group||'Traveling alone')}${row('Current island',startPending?'Not yet rolled':j.story.location)}${row('Map region',startPending?'Not yet rolled':map.region)}${row('Territory',startPending?'Not yet rolled':j.story.territories?.[j.story.location]?.ruler||String(map.location.f||'neutral').replaceAll('_',' '))}${row('Climate',startPending?'Not yet rolled':String(map.location.c||'unspecified').replaceAll('_',' '))}${row('Authored exits',startPending?'—':map.routes)}${row('Dream milestones',`${j.story.dreamProgress}/4`)}${row('Legacy',j.story.legacy)}${row('Group support',j.groupSupport?'Existing group support +3':'Named companions only')}</dl></section><section class="sheet-group journey-skills"><h3>PRACTICE & GROWTH</h3>${Object.keys(j.skills).map(k=>{const rank=levelOf(j,k),track=trackFor(k),max=rank===track.length-1,low=XP_LEVELS[rank],high=XP_LEVELS[rank+1]||low;return `<div class="skill-track"><div><span>${esc(skillLabel(k))}</span><small>${esc(track[rank])}</small></div><progress max="${max?1:high-low}" value="${max?1:j.skills[k]-low}" aria-label="${esc(skillLabel(k))} progress"></progress><small>${max?'Maximum mastery':`${j.skills[k]-low} / ${high-low} practice to ${esc(track[rank+1])}`}</small></div>`;}).join('')}</section><section class="sheet-group"><h3>INVENTORY</h3>${j.inventory.length?j.inventory.map(i=>`<div class="crew-person">${esc(i.name)}${i.count>1?` × ${i.count}`:''}<small>${esc(i.type)}</small></div>`).join(''):'<p class="empty-state">Nothing carried yet.</p>'}</section><section class="sheet-group"><h3>COMPANIONS · ${j.crew.length}</h3>${j.crew.length?j.crew.map(c=>`<div class="crew-person">${esc(c.name)}<small>${esc(c.role)}${c.fruit?` · ${esc(c.fruit)}`:''} · Power ${esc(c.power??10)} · Loyalty ${esc(c.loyalty??55)}/100${c.injury?` · Injury ${esc(c.injury)}/5`:''}</small></div>`).join(''):`<p class="empty-state">${j.groupSupport?'Your existing group provides support. No named recruits yet.':'You travel without companions.'}</p>`}</section>`;
  renderTimeline();
 }
 function renderTimeline(){
  if(!journey)return;const j=journey;$('journeyLogCount').textContent=`${j.chapter} completed ${j.chapter===1?'chapter':'chapters'}`;
- $('timeline').innerHTML=j.log.length?[...j.log].reverse().slice(0,visibleChapters).map(e=>`<article class="timeline-entry ${e.alive?'':'death'}"><div class="timeline-stamp">CHAPTER ${String(e.chapter).padStart(2,'0')}<b>Age ${ageLabel(e.age)}</b><span>+${e.months} months</span></div><div class="timeline-body"><div class="journal-location">${esc(e.location||'Earlier waters')}${e.encounter?' · '+esc(e.encounter):''}</div><h3>${esc(e.title)}</h3>${e.narrative?`<p class="journal-prose">${esc(e.narrative)}</p>`:''}<p><b>${esc(e.result)}</b></p>${e.effects.length?`<ul>${e.effects.map(t=>`<li>${esc(t)}</li>`).join('')}</ul>`:''}<details><summary>See all ${e.rolls.length} fate rolls</summary>${e.rolls.map(r=>`<div class="roll-trace"><span>${esc(r.wheel)}<br><b>${esc(r.label)}</b>${r.modifier?`<small>${esc(r.modifier.label)}: ${esc(r.modifier.outcome)} ${pct(r.modifier.before)} → ${pct(r.modifier.after)}</small>`:''}</span><span>${pct(r.chance)}</span></div>`).join('')}</details></div></article>`).join(''):'<p class="empty-state">The horizon is open. Your first event begins your journey.</p>';
+ $('timeline').innerHTML=j.log.length?[...j.log].reverse().slice(0,visibleChapters).map(e=>`<article class="timeline-entry ${e.alive?'':'death'}"><div class="timeline-stamp">CHAPTER ${String(e.chapter).padStart(2,'0')}<b>Age ${ageLabel(e.age)}</b><span>+${e.months} months</span></div><div class="timeline-body"><div class="journal-location">${esc(e.location||'Earlier waters')}${e.encounter?' · '+esc(e.encounter):''}</div><h3>${esc(e.title)}</h3>${e.narrative?`<p class="journal-prose">${esc(e.narrative)}</p>`:''}<p><b>${esc(e.result)}</b></p>${e.effects.length?`<ul>${e.effects.map(t=>`<li>${esc(t)}</li>`).join('')}</ul>`:''}<details><summary>See all ${e.rolls.length} choices and fate rolls</summary>${e.rolls.map(r=>`<div class="roll-trace"><span>${esc(r.wheel)}<br><b>${esc(r.label)}</b>${r.modifier?`<small>${esc(r.modifier.label)}: ${esc(r.modifier.outcome)} ${pct(r.modifier.before)} → ${pct(r.modifier.after)}</small>`:''}</span><span>${r.kind==='choice'?'YOUR CHOICE':pct(r.chance)}</span></div>`).join('')}</details></div></article>`).join(''):'<p class="empty-state">The horizon is open. Your first event begins your journey.</p>';
  $('moreHistory').hidden=j.log.length<=visibleChapters;
 }
 function renderStory(){
@@ -73,17 +74,17 @@ function renderStory(){
  $('storyCompass').innerHTML=`<div class="compass-heading"><span class="eyebrow">${esc(REGIONS[placeOf(j)[1]])} / ${esc(j.story.location)}</span><span class="life-stage">${esc(life.stage)}</span></div><h2>${esc(life.focus)}</h2><p>${esc(j.character.dream)} · ${j.story.dreamProgress}/4 milestones</p><div class="dream-steps">${d.steps.map((step,i)=>`<span class="${i<j.story.dreamProgress?'fulfilled':i===j.story.dreamProgress?'next-goal':''}" title="${esc(step)}"><b>${i<j.story.dreamProgress?'✓':i+1}</b>${esc(step)}</span>`).join('')}</div><details><summary>Why your story is heading this way</summary><ul>${life.reasons.map(n=>`<li>${esc(n)}</li>`).join('')}</ul>${!r.ready&&j.story.dreamProgress<4?`<p>Next milestone still needs ${esc(r.needs.join('; '))}.</p>`:''}<p>${j.story.visited.length} islands visited · ${j.story.dreamClues} useful leads · ${j.story.legacy} legacy moments</p></details>`;
  const bonds=Object.entries(j.story.relationships).map(([id,bond])=>({person:CANON.find(c=>c.id===id),...bond})).filter(b=>b.person);
  if(bonds.length)$('storyCompass').innerHTML+=`<div class="bonds-strip">${bonds.sort((a,b)=>b.last-a.last).slice(0,8).map(b=>`<span class="bond ${j.story.dead.includes(b.person.id)?'fallen':b.score>0?'friend':b.score<0?'rival':''}">${esc(b.person.name)} <small>${j.story.dead.includes(b.person.id)?'Deceased':b.score>0?'Ally':b.score<0?'Grudge':'Acquaintance'}</small></span>`).join('')}</div>`;
- $('storyCompass').innerHTML+=renderSagaJournal(j);
+ $('storyCompass').innerHTML+=renderDevelopment(j)+renderSagaJournal(j);
 }
 function context(s){
  const saga=SAGA_BY_ID[journey?.pending?.picks.sagaId];
  const c=journey&&CANON.find(c=>c.id===(journey.pending?.picks.opponent||journey.pending?.picks.mentor));
  $('canonEncounter').hidden=!c&&!saga;
- if(saga){$('canonEncounter').innerHTML=`<div class="encounter-top"><span>CANON CROSSROADS</span><span>ALTERNATE TIMELINE</span></div><h3>${esc(saga.title)}</h3><p>${esc(saga.anchor)}</p><div class="encounter-details">${saga.cast.map(id=>`<span>${esc(CANON.find(c=>c.id===id)?.name||id)}</span>`).join('')}</div><small>These are the people connected to this story; your choices and their consequences are authored fiction.</small>`;}
+ if(saga){$('canonEncounter').innerHTML=`<div class="encounter-top"><span>${saga.cast.length?'CANON CROSSROADS':'ORIGINAL VOYAGE'}</span><span>ALTERNATE TIMELINE</span></div><h3>${esc(saga.title)}</h3><p>${esc(saga.anchor)}</p><div class="encounter-details">${saga.cast.map(id=>`<span>${esc(CANON.find(c=>c.id===id)?.name||id)}</span>`).join('')}</div>`;}
  if(c){const bond=journey.story.relationships[c.id];$('canonEncounter').innerHTML=`<div class="encounter-top"><span>CANON ${journey.pending.picks.mentor?'MENTOR':'ENCOUNTER'}</span><span>${esc(c.kind.toUpperCase())}</span></div><div class="encounter-person"><div class="encounter-seal" aria-hidden="true">${esc(c.name.split(' ').filter(n=>n.length>1).map(n=>n[0]).slice(0,2).join(''))}</div><div><h3>${esc(c.name)}</h3><p>${esc(c.crew)}</p></div></div><p class="encounter-description">${esc(encounterStory(journey,c))}</p><div class="encounter-details"><span>${esc(c.style)}</span><span>${bond?`${bond.meetings} previous meeting${bond.meetings===1?'':'s'}`:'First meeting'}</span></div>`;}
 
  $('chapterContext').hidden=!journey||!journey.pending;
- if(journey?.pending){const p=journey.pending;$('chapterContext').innerHTML=`<b>CHAPTER ${journey.chapter+1} · ${esc(EVENT_BY_ID[p.event]?.label||(p.event==='saga'?'A PROMISE BECOMES A SAGA':'Captivity'))}</b>${p.narrative?`<p class="chapter-premise">${esc(p.narrative)}</p>`:''}${p.rolls.map(r=>esc(r.label)).join(' → ')}<br><span>${p.phase==='aging'?`${p.months} months have passed. Final aging check.`:'Follow-up rolls resolve this event; they add no extra time.'}</span>`;}
+ if(journey?.pending){const p=journey.pending;$('chapterContext').innerHTML=`<b>CHAPTER ${journey.chapter+1} · ${esc(EVENT_BY_ID[p.event]?.label||({saga:'A PROMISE BECOMES A SAGA',crossroads:'REWRITE HISTORY',technique:'ADVANCED DISCIPLINE',crewStory:'A COMPANION’S DREAM',territory:'TERRITORY STEWARDSHIP'}[p.event]||'Captivity'))}</b>${p.narrative?`<p class="chapter-premise">${esc(p.narrative)}</p>`:''}${p.rolls.map(r=>esc(r.label)).join(' → ')}<br><span>${p.phase==='aging'?`${p.months} months have passed. Final aging check.`:'Follow-up rolls resolve this event; they add no extra time.'}</span>`;}
  $('oddsModifier').hidden=!s?.modifier;
  if(s?.modifier){const m=s.modifier;$('oddsModifier').innerHTML=`<div class="modifier-title">FATE ROLLED · ${esc(m.label)}</div><strong>${esc(m.outcome)}: ${pct(m.before)} → <span class="delta">${pct(m.after)}</span></strong><p>+${(m.after-m.before).toFixed(1)} percentage points. Other outcomes are rebalanced. Fate chose the impulse; your ability limits what it can change.</p>`;}
 }
@@ -92,7 +93,7 @@ function summary(){
  if(last)$('chapterSummary').innerHTML=`<h3>Chapter ${last.chapter} · ${esc(last.result)}</h3><p>${last.months} months passed. Now age ${ageLabel(last.age)}.</p>${last.effects.length?`<ul>${last.effects.map(e=>`<li>${esc(e)}</li>`).join('')}</ul>`:''}`;
 }
 function render(){
- current=journey?nextJourneyStep(journey):nextStep(history);awaitNext=false;sheet();setBusy(false);context(current);summary();
+ current=journey?nextJourneyStep(journey):nextStep(history);awaitNext=false;$('spin').hidden=false;document.querySelector('.keyboard-hint').hidden=false;sheet();setBusy(false);context(current);summary();
  if(!current){
  $('oddsDetails').hidden=true;
  if(journey){
@@ -106,6 +107,12 @@ function render(){
  $('result').innerHTML=`<span>YOUR STORY HAS A NAME</span><strong>${esc(fullName(values(history)))}</strong>`;$('spin').textContent='BEGIN YOUR JOURNEY →';
  }return;
  }
+ if(current.kind==='choice'){
+ $('stepLabel').textContent=`CHAPTER ${journey.chapter+1} / YOUR INTENT`;$('wheelTitle').textContent=current.label;$('wheelNote').textContent=current.note;$('oddsDetails').hidden=true;$('spin').hidden=true;document.querySelector('.keyboard-hint').hidden=true;
+ $('wheelArea').classList.add('choosing-intent');$('wheelArea').innerHTML=`<div class="intent-heading">CHOOSE WHAT YOU TRY TO DO<span>The next wheel decides what happens.</span></div><div class="intent-options">${current.options.map(o=>`<button type="button" class="intent-choice" data-intent="${esc(o.value)}"><b>${esc(o.label)}</b><span>${esc(o.note||'')}</span><small>CHOOSE INTENT →</small></button>`).join('')}</div>`;
+ $('result').innerHTML='<span>YOUR DECISION COMES FIRST</span><strong>Set your intent.</strong>';return;
+ }
+ $('wheelArea').classList.remove('choosing-intent');
  if(!$('wheel'))$('wheelArea').innerHTML='<div class="wheel-pointer"></div><canvas id="wheel" width="800" height="800" role="img" aria-label="Weighted outcome wheel; exact odds are listed below"></canvas><div class="wheel-hub">✺<small>YOUR FATE</small></div>';
  $('stepLabel').textContent=journey?(current.key==='startLocation'?'JOURNEY SETUP / STARTING POINT':`CHAPTER ${String(journey.chapter+1).padStart(2,'0')} / ${current.key==='event'?'THE HORIZON':'FATE UNFOLDS'}`):`${current.group.toUpperCase()} / SPIN ${String(history.length+1).padStart(2,'0')}`;
  $('wheelTitle').textContent=current.label;$('wheelNote').textContent=current.note;$('oddsDetails').hidden=false;$('optionCount').textContent=`${current.options.length} OUTCOMES`;
@@ -113,7 +120,7 @@ function render(){
  $('result').innerHTML=`<span>${journey?(current.key==='startLocation'?'YOUR FIRST POINT ON THE MAP':'THE HORIZON IS NEVER CERTAIN'):'THE NEXT CHAPTER IS YOURS'}</span><strong>Let fate decide.</strong>`;$('spin').innerHTML='SPIN THE WHEEL <span>↗</span>';drawWheel(current);
 }
 async function spin(){
- if(busy)return;
+ if(busy||(!awaitNext&&current?.kind==='choice'))return;
  if(awaitNext){render();return;}
  if(!current){if(journey){exportSave();return;}journey=createJourney(history);journey.peakPower=combatPower(journey);save();render();toast('Before Chapter 1, fate chooses your starting point on the world map.');return;}
  setBusy(true);const s=current;const selected=weightedPick(s.options,random);let outcome;
@@ -130,12 +137,16 @@ async function spin(){
  $('spin').innerHTML=journey?(journey.alive?(s.key==='startLocation'?'BEGIN CHAPTER 01 <span>→</span>':journey.pending?'RESOLVE THIS CHAPTER <span>→</span>':'NEXT CHAPTER <span>→</span>'):'REMEMBER YOUR JOURNEY <span>→</span>'):(nextStep(history)?'NEXT WHEEL <span>→</span>':'REVEAL YOUR CHARACTER <span>→</span>');
 }
 function exportSave(){const blob=new Blob([JSON.stringify(saveDocument(history,journey),null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`${fullName(values(history)).replace(/[^a-z0-9]+/gi,'-').toLowerCase()}-${journey?'journey':'origin'}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast(journey?'Journey exported, including every fate roll and the current event.':'Character exported. You can begin its journey on any device.');}
+$('wheelArea').addEventListener('click',event=>{
+ const button=event.target.closest('[data-intent]');if(!button||busy||current?.kind!=='choice')return;
+ applyJourneyChoice(journey,button.dataset.intent);save();render();$('wheelTitle').setAttribute('tabindex','-1');$('wheelTitle').focus();
+});
 $('spin').addEventListener('click',spin);
 document.addEventListener('keydown',event=>{
  if(event.code!=='Space'||event.repeat||busy||document.querySelector('dialog[open]'))return;
  const target=event.target;
  if(target?.closest?.('input,textarea,select,button,a,summary,[contenteditable="true"]'))return;
- const button=$('spin');if(!button||button.disabled)return;
+ const button=$('spin');if(!button||button.disabled||button.hidden)return;
  event.preventDefault();button.click();
 });
 $('undo').addEventListener('click',()=>{if(busy||journey||!history.length)return;history.pop();save();render();});

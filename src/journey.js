@@ -1,3 +1,7 @@
+import {campaignPool,campaignIntents,campaignOutcomes,resolveCampaign,CROSSROAD_BY_ID,territoryIntents,territoryOutcomes,resolveTerritory} from './crossroads.js';
+import {crewStoryPool,crewIntents,crewOutcomes,resolveCrewStory,crewPerkFactor,hasCrewPerk} from './crew-stories.js';
+import {developmentEnabled,canImprove,availablePractice,filterGrowthRewards,INTENTS,intentWeight} from './development.js';
+import {techniquePool,techniqueOutcomes,resolveTechnique,techniqueFactor} from './techniques.js';
 import {sagaPool,sagaScene,sagaOptions,resolveSaga,SAGA_BY_ID} from './sagas.js';
 import {options,fruits,swords,firstNames,surnames,heritageProfile} from './data.js';
 import {nextStep,values,weightedPick,probability,validateHistory,characterDocument,fullName} from './engine.js';
@@ -35,7 +39,7 @@ export function createJourney(history,{heritageVersion=1}={}){
  const heritage=applyHeritage(character,skills,heritageVersion>=1);
  const crew=[];if(character.crewMode==='Form your own group')for(let i=1;i<=Number(character.crewSize);i++)crew.push({name:character[`member_${i}_canon`]||character[`member_${i}_generated`],role:character[`member_${i}_role`]||'Canon ally',race:character[`member_${i}_race`]||'Canon',canon:character[`member_${i}_origin`]==='Canon character'});
  const j={version:JOURNEY_VERSION,character,skills,heritageVersion,heritage,crew,group:character.joinedCrew||character.crewName||null,groupSupport:character.joinedCrew?3:0,startAgeMonths:Number(character.age)*12,ageMonths:Number(character.age)*12,elapsedMonths:0,alive:true,cause:null,chapter:0,pending:null,rolls:[],log:[],injury:0,captured:false,berries:0,bounty:Number((character.bounty||'').replace(/\D/g,''))||0,inventory:[],danger:0,wins:0,losses:0,kills:0,discoveries:0,recruits:0,peakPower:0,startLocationRollVersion:1,startLocationResolved:false};
- j.sagaCutover=0;j.peakPower=combatPower(j);j.legacyCutover=0;j.legacyPending=false;j.simulationCutover=0;initializeStory(j);ensureSimulation(j);return j;
+ j.developmentCutover=0;j.sagaCutover=0;j.peakPower=combatPower(j);j.legacyCutover=0;j.legacyPending=false;j.simulationCutover=0;initializeStory(j);ensureSimulation(j);return j;
 }
 export function liveCharacter(j){
  const a={...j.character,age:ageLabel(j.ageMonths),bounty:j.bounty?money(j.bounty):(j.character.bounty==='No government bounty'?'No government bounty':'No bounty yet')};
@@ -80,24 +84,26 @@ export function combatOdds(j,threatValue,instinct='Steady resolve'){
  ['death','Killed in battle',Math.min(40,4/Math.pow(ratio,1.08)+danger*1.1)+j.injury*.6,OUTCOME_NOTES.death],
  ]));
  if(threat.style?.includes('Logia')&&!('haki_armament' in j.skills))base=normalize(base.map(o=>({...o,weight:['victory','lethal'].includes(o.value)?o.weight*.35:o.weight})));
+ if(developmentEnabled(j))base=normalize(base.map(o=>({...o,weight:o.weight*intentWeight(j.pending?.picks.combatIntent,o.value)*techniqueFactor(j,o.value)*crewPerkFactor(j,'combat',o.value)})));
  const targets={'Urge to flee':'escape','Aggressive impulse':'lethal','Protect your people':'spared','Read the battlefield':'victory'};
  const target=targets[instinct];const adjusted=target?boostOutcome(base,target,['lethal','victory'].includes(target)?7*Math.min(1,ratio):7):base;
  return {base,options:adjusted,power,enemy,modifier:target?{label:instinct,outcome:base.find(o=>o.value===target).label,before:base.find(o=>o.value===target).weight,after:adjusted.find(o=>o.value===target).weight}:null};
 }
 export function eventPool(j){
  if(j.captured)return pool([['prison','Months in captivity',65],['prisonBreak','An opening to escape',35]]);
- const danger=effectiveDanger(j);return shapeEvents(j,[...(sagaPool(j).length?[['saga','A promise becomes a saga',18]]:[]),...EVENTS].filter(([id])=>!(id==='provisions'&&!j.inventory.some(i=>i.type==='fruit'))&&!(id==='spar'&&!j.crew.length&&!j.groupSupport)&&!(id==='betrayal'&&!j.crew.length&&!j.groupSupport)&&!(id==='hunters'&&!j.bounty)&&!(id==='recruit'&&!companionPool(j).length)&&!(id==='haki'&&['haki_observation','haki_armament','haki_conqueror'].every(k=>k in j.skills))).map(([value,label,weight])=>opt(value,label,weight*(COMBAT_EVENTS.includes(value)?1+danger*.18:1))));
+ const dev=developmentEnabled(j),hasTraining=trainingPool(j).length>0;
+ const danger=effectiveDanger(j);return shapeEvents(j,[...(campaignPool(j).length?[['crossroads','Change the course of history',8]]:[]),...(crewStoryPool(j).length?[['crewStory','A companion’s unfinished dream',10]]:[]),...(dev&&territoryIntents(j).length?[['territory','Your territory needs you',9]]:[]),...(techniquePool(j).length?[['technique','Develop an advanced technique',7]]:[]),...(sagaPool(j).length?[['saga','A promise becomes a saga',18]]:[]),...EVENTS].filter(([id])=>!(dev&&!hasTraining&&['training','mentor','spar','timeskip'].includes(id))&&!(dev&&id==='weapon'&&!weaponPool(j).length)&&!(id==='provisions'&&!j.inventory.some(i=>i.type==='fruit'))&&!(id==='spar'&&!j.crew.length&&!j.groupSupport)&&!(id==='betrayal'&&!j.crew.length&&!j.groupSupport)&&!(id==='hunters'&&!j.bounty)&&!(id==='recruit'&&!companionPool(j).length)&&!(id==='haki'&&['haki_observation','haki_armament','haki_conqueror'].every(k=>k in j.skills))).map(([value,label,weight])=>opt(value,label,weight*(COMBAT_EVENTS.includes(value)?1+danger*.18:1))));
 }
 export function trainingPool(j){return trainingWeights(j,Object.keys(j.skills).filter(k=>j.skills[k]<XP_LEVELS[trackFor(k).length-1]).map(k=>opt(k,skillLabel(k),k.startsWith('haki_')?2:5)));}
 function heldFruitNames(j){return [j.character.fruit,...j.crew.map(c=>c.fruit),...j.inventory.filter(i=>i.type==='fruit').map(i=>i.name)].filter(Boolean);}
 function fruitTypes(j){const used=heldFruitNames(j);return pool([['Paramecia','Paramecia',55],['Standard Zoan','Standard Zoan',30],['Ancient Zoan','Ancient Zoan',5],['Mythical Zoan','Mythical Zoan',1],['Logia','Logia',9]]).filter(o=>fruits[o.value].some(f=>!used.includes(f.value)));}
 function weaponPool(j){
  const style=j.character.fightingStyle;
- if(style.includes('sword')){const available=swords.filter(w=>!Object.values(j.character).includes(w.value)&&!j.inventory.some(i=>i.name===w.value));return available.length?available:options(['Maintain your weapons']);}
+ if(style.includes('sword')){const available=swords.filter(w=>!Object.values(j.character).includes(w.value)&&!j.inventory.some(i=>i.name===w.value));return available.length?available:(!developmentEnabled(j)||Object.keys(j.skills).some(k=>k.startsWith('weaponMastery_')&&canImprove(j,k))?options(['Maintain your weapons']):[]);}
  const choices={Sniper:['Precision rifle','Reinforced slingshot','Masterwork pistol'],'Staff fighting':['Steel staff','Weather staff'],'Spear fighting':['Reinforced trident','Masterwork spear'],'Axe fighting':['Steel great axe','Balanced boarding axe']};
- return options(choices[style]||['Protective armor','Medical supplies','Rare combat manual']);
+ return filterGrowthRewards(j,options(choices[style]||['Protective armor','Medical supplies','Rare combat manual']),{'Rare combat manual':'fightingMastery'});
 }
-function companionPool(j){const used=new Set([fullName(j.character),...j.crew.map(c=>c.name)]);return firstNames.flatMap((n,i)=>surnames.map((s,k)=>({value:`${s} ${n}`,label:`${s} ${n} · ${ROLES[(i+k)%ROLES.length]}`,weight:1,note:ROLES[(i+k)%ROLES.length]}))).filter(o=>!used.has(o.value));}
+function companionPool(j){const used=new Set([fullName(j.character),...j.crew.map(c=>c.name),...(developmentEnabled(j)?Object.keys(j.story.crewStories||{}):[])]);return firstNames.flatMap((n,i)=>surnames.map((s,k)=>({value:`${s} ${n}`,label:`${s} ${n} · ${ROLES[(i+k)%ROLES.length]}`,weight:1,note:ROLES[(i+k)%ROLES.length]}))).filter(o=>!used.has(o.value));}
 export function naturalDeathChance(race,startAgeMonths,duration){
  const life=lifespanFor(race);if(startAgeMonths+duration>=life.limit*12)return 100;
  let survival=1;
@@ -111,7 +117,7 @@ export function nextJourneyStep(j){
  if(j.legacyPending)return legacy.nextJourneyStep(j);
  if(!j.alive)return null;
  if(!j.startLocationResolved)return {id:'0:startLocation',key:'startLocation',label:'Where does your journey begin?',group:'Journey Setup',options:startingLocationPool(j),note:'This zero-time spin locks your real QGIS starting point before Chapter 1. Faction, family, crew affiliation and age influence the odds.'};
- const p=j.pending;const make=(key,label,opts,note='',extras={})=>({id:`${j.chapter+1}:${key}`,key,label,group:'Journey',options:opts,note,...extras});
+ const p=j.pending;const make=(key,label,opts,note='',extras={})=>({id:`${j.chapter+1}:${key}`,key,label,group:'Journey',options:opts.map(o=>{const f=crewPerkFactor(j,j.pending?.event,o.value);return {...o,weight:o.weight*f,...(f!==1?{note:`${o.note||''} Crew specialty: outcome weight ×${f}.`}:{})};}),note,...extras});
  if(!p)return make('event','What lies on the horizon?',eventPool(j),'One event = four months. Follow-up wheels resolve that same period. Time skips state their own duration.');
  if(p.phase==='aging'){
  const risk=naturalDeathChance(j.character.race,p.startAge,p.months);
@@ -120,37 +126,53 @@ export function nextJourneyStep(j){
  const a=p.picks,event=p.event;
  const need=(key,label,opts,note='',extras={})=>a[key]===undefined?make(key,label,opts,note,extras):null;
  let s;
+ const choice=(key,label,opts,note)=>({...make(key,label,opts,note),kind:'choice'});
+ if(event==='crossroads'){
+ if(!a.campaign)return make('campaign','Which turning point draws you in?',campaignPool(j),'A three-stage alternate-history campaign: intelligence, coalition, and a decisive operation. Each stage is one chapter; ordinary life can intervene.');
+ if(!a.campaignIntent)return choice('campaignIntent',CROSSROAD_BY_ID[a.campaign].title,campaignIntents(j),CROSSROAD_BY_ID[a.campaign].premise);
+ return make('campaignResult','Does your operation change history?',campaignOutcomes(j,combatPower(j)),CROSSROAD_BY_ID[a.campaign].stakes);
+ }
+ if(event==='crewStory'){
+ if(!a.crewFocus)return choice('crewFocus','Whose story needs your attention?',crewStoryPool(j),'Choose a current companion. Their individual dream, loyalty, and injuries shape the next chapter.');
+ if(!a.crewIntent)return choice('crewIntent','How will you stand beside them?',crewIntents(j),'Your companion’s fate is not guaranteed by your intention.');
+ return make('crewResult','What does this chapter mean to them?',crewOutcomes(j));
+ }
+ if(event==='territory'){if(!a.territoryIntent)return choice('territoryIntent','What sort of protector will you become?',territoryIntents(j),'Your choices shape the island’s stability, prosperity, and defenses. At zero stability it rejects your stewardship.');return make('territoryResult','How does the territory respond?',territoryOutcomes(j));}
+ if(event==='technique'){if(!a.technique)return choice('technique','What will you learn to do differently?',techniquePool(j),'Choose a discipline you qualify for. The following wheel decides the result. Learned disciplines leave this list permanently.');return make('techniqueResult','Can you make the technique reliable?',techniqueOutcomes(j));}
  if(COMBAT_EVENTS.includes(event)){
  if(event==='betrayal'){
  if(s=need('opponent','Which danger exploits the betrayal?',canonPool(j,'pirates'),'An actual pirate crew takes advantage of division among your allies.'))return s;
  }else if(s=need('opponent','Whose flag breaks the horizon?',canonPool(j,event),`You are near ${j.story.location}. Starting-era eligibility, nearby seas, your power and past meetings shape the cast.`))return s;
  const c=encounterOf(j);
  if(event!=='betrayal'&&(s=need('tone',`How does ${c.name} receive you?`,encounterTones(j,c),encounterStory(j,c))))return s;
- if(a.tone==='friendly')return make('socialResult',`A meeting with ${c.name}`,pool([
+ if(a.tone==='friendly')return make('socialResult',`A meeting with ${c.name}`,filterGrowthRewards(j,pool([
  ['alliance','Part with a promise of mutual help',25],['lesson','Learn from their experience',25],['clue','Receive a lead toward your dream',25],['part','Share provisions and part peacefully',20],['offend','An argument leaves a grudge',5],
- ]),`${c.name} · ${c.crew}. No fight has started; this one resolution decides what the meeting leaves behind.`);
+ ]),{lesson:'battleIQ'}),`${c.name} · ${c.crew}. No fight has started; this one resolution decides what the meeting leaves behind.`);
+ if(developmentEnabled(j)&&!a.combatIntent)return choice('combatIntent','What are you trying to achieve?',INTENTS.combat,'Choose your intent. It changes the odds; the wheel determines what actually happens.');
  if(s=need('instinct','What instinct takes hold?',encounterInstincts(j,INSTINCTS),`Facing ${c.name} and ${c.crew}, your condition and experience shape your automatic response.`))return s;
  const odds=combatOdds(j,a.opponent,a.instinct);
  return make('resolution',`${c.name}: one encounter, one outcome`,odds.options,`${c.crew} · ${c.style}. Your rating ${odds.power} vs ${odds.enemy}. ${c.style.includes('Logia')&&!('haki_armament' in j.skills)?'Without Armament, hitting a Logia is harder. ':''}Attacking impulses cannot erase a huge power gap.`,{baseOptions:odds.base,modifier:odds.modifier});
  }
  if(event==='saga'){
  if(s=need('sagaId','Which unfinished story finds you?',sagaPool(j),'Canon anchors inspire original alternate-timeline missions. Site-specific stories require your current island; unfinished threads carry more weight.'))return s;
- const scene=sagaScene(j,a.sagaId);return make('sagaChoice',scene.title,sagaOptions(j,a.sagaId),`${scene.text} Fate chooses your response; each result advances this thread or writes its ending. This scene takes the usual four months.`);
+ if(developmentEnabled(j)&&!a.sagaIntent)return choice('sagaIntent','What matters most in this story?',INTENTS.saga,'Your intent weights the possible consequences. Nothing is guaranteed.');
+ const scene=sagaScene(j,a.sagaId);return make('sagaChoice',scene.title,sagaOptions(j,a.sagaId),`${scene.text} Fate resolves your intent; each result advances this thread or writes its ending. This scene takes the usual four months.`);
  }
  if(event==='travel')return make('destination','Which shore calls you next?',travelPool(j),'Nearby waters are common; stronger, prepared travelers are more likely to push onward.');
  if(event==='dream'){
  const d=dreamOf(j),r=dreamReadiness(j);
  return make('dreamResult',j.story.dreamProgress>=4?'A fulfilled dream can still change lives':d.steps[j.story.dreamProgress],dreamOutcomePool(j),r.ready?'Your experience has put this milestone within reach. Fate decides whether the work pays off.':`Still needed: ${r.needs.join('; ')}. A useful lead can be found while you prepare.`);
  }
- if(event==='recovery')return make('lifeResult','What does time to heal give you?',pool([['healed','Rest and care restore you',70],['insight','Gentle practice teaches you a better way',20],['slow','Recovery takes longer than hoped',10]]));
- if(event==='reflection')return make('lifeResult','What becomes clear in the quiet?',pool([['insight','An old mistake becomes a useful lesson',40],['lead','Your notes reveal a forgotten lead',35],['rest','You make peace with a difficult memory',25]]));
- if(event==='teaching')return make('lifeResult','What do you leave with your student?',pool([['student','A student carries your teaching forward',60],['insight','Teaching reveals a gap in your own understanding',25],['lead','Your student brings news of your dream',15]]));
+ if(event==='recovery')return make('lifeResult','What does time to heal give you?',filterGrowthRewards(j,pool([['healed','Rest and care restore you',70],['insight','Gentle practice teaches you a better way',20],['slow','Recovery takes longer than hoped',10]]),{insight:'battleIQ'}));
+ if(event==='reflection')return make('lifeResult','What becomes clear in the quiet?',filterGrowthRewards(j,pool([['insight','An old mistake becomes a useful lesson',40],['lead','Your notes reveal a forgotten lead',35],['rest','You make peace with a difficult memory',25]]),{insight:'battleIQ'}));
+ if(event==='teaching')return make('lifeResult','What do you leave with your student?',filterGrowthRewards(j,pool([['student','A student carries your teaching forward',60],['insight','Teaching reveals a gap in your own understanding',25],['lead','Your student brings news of your dream',15]]),{insight:'battleIQ'}));
  if(event==='homecoming')return make('lifeResult','What waits when you answer the call?',pool([['home','A reunion gives you a place to return to',55],['lead','Someone remembers the person you used to be',30],['farewell','A farewell changes what matters to you',15]]));
  if(event==='leadership')return make('lifeResult','What does your example inspire?',pool([['trust','Your companions find common purpose',60],['insight','You learn to listen before giving orders',25],['friction','Disagreement slows your plans',15]]));
  if(['training','mentor','spar','timeskip'].includes(event)){
  if(event==='mentor'&&(s=need('mentor','Who is willing to teach you?',canonPool(j,'mentor'),'A named teacher’s expertise changes the training-target odds.')))return s;
  if(event==='timeskip'&&(s=need('duration','How many years pass?',pool([['12','One year',45],['24','Two years',35],['60','Five years',15],['120','Ten years',5]]),'This duration replaces the usual four months; follow-up training does not add more time.')))return s;
  const targets=trainingPool(j);
+ if(!targets.length&&developmentEnabled(j))return make('trainingResult','Your mastery can help someone else',pool([['shareMastery','Pass on a mastered lesson',1]]),'No eligible stat needs practice. This older pending chapter becomes a legacy lesson instead.');
  if(!targets.length)return make('trainingResult','A master’s quiet discipline',options([['Maintain your mastery',1]]),'Every available skill has reached its current cap. Time still advances.');
  if(s=need('target',event==='spar'?'What does sparring sharpen?':'What develops during this chapter?',targets,'Progress builds toward the next rank; mastery never resets or decreases from training.'))return s;
  if(s=need('trainingInstinct','What carries you through?',options([['Steady discipline',65],['Sudden inspiration',20],['Restless distraction',15]]),'An automatic impulse changes the next training wheel.'))return s;
@@ -180,14 +202,14 @@ export function nextJourneyStep(j){
  if(a.awakening==='yes')return make('hakiType','Which power answers?',missing,'Only unawakened types are eligible. Already-held types grow through training.');
  }
  if(event==='world')return make('worldResult','The world changes around you.',worldEventPool(j,WORLD_EVENTS),'World stability, government control, laws, executions and island-scale disasters can permanently reshape later wheels.');
- if(event==='treasure')return make('treasureResult','What was hidden away?',TREASURES,'Valuables bring berries; equipment and supplies can affect survival and growth.');
+ if(event==='treasure')return make('treasureResult','What was hidden away?',filterGrowthRewards(j,TREASURES,{'Rare combat manual':'fightingMastery'}),'Valuables bring berries; equipment and supplies can affect survival and growth.');
  if(event==='weapon')return make('weaponResult','What waits in the cache?',weaponPool(j),'A compatible weapon replaces your least-practiced weapon slot. Existing style training is retained; the new weapon begins at novice mastery. Unarmed fighters find equipment instead.');
  if(event==='recruit'){
  if(s=need('recruitResult','Does this stranger sail with you?',pool([['join','A new companion joins',60],['part','You part as friends',30],['scam','A stranger steals your berries',10]])))return s;
  if(a.recruitResult==='join')return make('recruitName','Who joins your story?',companionPool(j),'New journey recruits are original characters. Their support contributes to your combat odds.');
  }
- if(event==='quiet'||event==='celebration')return make('quietResult',event==='quiet'?'How do the quiet months pass?':'How does the celebration end?',pool([['rest','Rest and recovery',60],['work','Honest work pays',25],['practice','Light practice',15]]));
- if(event==='trade')return make('tradeResult','Does fortune favor the deal?',pool([['profit','A profitable deal',45],['manual','Trade for a combat manual',15],['medicine','Trade for medical supplies',20],['loss','A bad bargain',20]]));
+ if(event==='quiet'||event==='celebration')return make('quietResult',event==='quiet'?'How do the quiet months pass?':'How does the celebration end?',filterGrowthRewards(j,pool([['rest','Rest and recovery',60],['work','Honest work pays',25],['practice','Light practice',15]]),{practice:'fightingMastery'}));
+ if(event==='trade')return make('tradeResult','Does fortune favor the deal?',filterGrowthRewards(j,pool([['profit','A profitable deal',45],['manual','Trade for a combat manual',15],['medicine','Trade for medical supplies',20],['loss','A bad bargain',20]]),{manual:'fightingMastery'}));
  if(event==='island')return make('islandResult','What does the island hold?',pool([['discovery','A remarkable discovery',40],['shelter','Safe harbor',30],['treasure','An abandoned treasure',22],['injury','A dangerous expedition',7+effectiveDanger(j)*.35],['death','The island claims your life',1+effectiveDanger(j)*.35]]));
  if(event==='rescue')return make('rescueResult','Can you save them?',pool([['saved','Everyone makes it out',45+combatPower(j)/2],['hurt','You save them, but are hurt',25+effectiveDanger(j)*.3],['failed','You survive; the rescue fails',20],['death','You die attempting the rescue',2+effectiveDanger(j)*.45]]),'Your capabilities increase the chance of a safe rescue; unstable waters make intervention more lethal.');
  if(event==='storm'||event==='shipwreck'){
@@ -195,12 +217,13 @@ export function nextJourneyStep(j){
  const danger=effectiveDanger(j,'travel');return make('seaResult','Do you survive the sea?',pool([['safe','Reach safety',55+(canSwim?10:0)+Math.min(allies,8)*2],['loss','Survive, but lose supplies',25],['hurt','Washed ashore injured',15+danger*.35],['death','Lost to the sea',(canSwim?1:allies?3:7)+danger*.4]]),canSwim?'Swimming and companions improve survival.':'Devil Fruit users cannot swim. Allies improve the rescue odds.');
  }
  if(event==='illness')return make('illnessResult','Can you weather the sickness?',pool([['recover','Recover fully',60],['weakened','Survive, still weakened',35+j.injury],['death','The sickness proves fatal',1+j.injury*.3]]));
- if(event==='prison')return make('prisonResult','What happens behind bars?',pool([['held','Remain imprisoned',60],['released','Released in an amnesty',20],['train','Train in secret',19],['death','Die in captivity',1+effectiveDanger(j)*.35]]),'Captivity replaces the normal event wheel until fate frees you.');
+ if(event==='prison')return make('prisonResult','What happens behind bars?',filterGrowthRewards(j,pool([['held','Remain imprisoned',60],['released','Released in an amnesty',20],['train','Train in secret',19],['death','Die in captivity',1+effectiveDanger(j)*.35]]),{train:'fightingMastery'}),'Captivity replaces the normal event wheel until fate frees you.');
  if(event==='prisonBreak')return make('escapeResult','Does your escape succeed?',pool([['free','Escape to freedom',25+combatPower(j)/2],['held','Caught and returned to your cell',50],['hurt','Caught and injured',20+effectiveDanger(j)*.25],['death','Killed during the escape',3+effectiveDanger(j)*.5]]));
  throw new Error(`Unresolved event: ${event}`);
 }
 function improve(j,key,amount,effects){
  if(!(key in j.skills))return;const before=levelOf(j,key);const max=XP_LEVELS[trackFor(key).length-1];const gain=Math.max(0,Math.min(amount,max-j.skills[key]));j.skills[key]+=gain;
+ if(!gain&&developmentEnabled(j)){j.story.legacy++;effects.push(`${skillLabel(key)} is already mastered; you pass the experience on. Legacy +1.`);return;}
  const after=levelOf(j,key);effects.push(`${skillLabel(key)} +${gain} practice${after>before?` → ${trackFor(key)[after]}`:''}.`);
 }
 function injury(j,amount,effects){const before=j.injury;j.injury=clamp(j.injury+amount,0,5);if(before!==j.injury)effects.push(`Injury burden ${before} → ${j.injury}/5.`);}
@@ -217,13 +240,17 @@ function simulationResolutionActive(j){return simulationRollCount(j)>(j.simulati
 function finishEvent(j){
  const p=j.pending;j.chapter++;
  if(j.alive&&simulationResolutionActive(j)){advanceWorldTime(j,p.months);p.effects.push(...resolveCrewTurns(j,p.months,p.event));}
- j.log.push({chapter:j.chapter,event:p.event,sagaId:p.picks.sagaId,location:p.location,narrative:p.narrative,trainingTarget:p.picks.target,encounter:p.picks.opponent?CANON.find(c=>c.id===p.picks.opponent)?.name:null,title:(p.event==='saga'?SAGA_BY_ID[p.picks.sagaId]?.title:null)||EVENT_BY_ID[p.event]?.label||(p.event==='prison'?'Months in captivity':'An opening to escape'),startAge:p.startAge,age:j.ageMonths,months:p.months,result:p.result,effects:[...p.effects],rolls:p.rolls.map(r=>({...r})),alive:j.alive});
+ j.log.push({chapter:j.chapter,event:p.event,sagaId:p.picks.sagaId,location:p.location,narrative:p.narrative,trainingTarget:p.picks.target,encounter:p.picks.opponent?CANON.find(c=>c.id===p.picks.opponent)?.name:null,title:(p.event==='saga'?SAGA_BY_ID[p.picks.sagaId]?.title:p.event==='crossroads'?CROSSROAD_BY_ID[p.picks.campaign]?.title:p.event==='crewStory'?`${p.picks.crewFocus}’s personal story`:p.event==='technique'?'An advanced discipline':p.event==='territory'?'Stewardship of your territory':null)||EVENT_BY_ID[p.event]?.label||(p.event==='prison'?'Months in captivity':'An opening to escape'),startAge:p.startAge,age:j.ageMonths,months:p.months,result:p.result,effects:[...p.effects],rolls:p.rolls.map(r=>({...r})),alive:j.alive});
  j.peakPower=Math.max(j.peakPower,combatPower(j));j.pending=null;
 }
 function settle(j,result){
  const p=j.pending,a=p.picks,e=p.effects,event=p.event;let requestedMonths=event==='timeskip'?Number(a.duration):4;
  const actualMonths=Math.max(0,Math.min(requestedMonths,lifespanFor(j.character.race).limit*12-j.ageMonths));
  p.result=result.label;
+ if(event==='crossroads')e.push(...resolveCampaign(j,result.value));
+ if(event==='crewStory')e.push(...resolveCrewStory(j,result.value));
+ if(event==='territory')e.push(...resolveTerritory(j,result.value));
+ if(event==='technique')e.push(...resolveTechnique(j,result.value));
  if(event==='saga')e.push(...resolveSaga(j,a.sagaId,result.value));
  if(event==='travel'){const from=worldLocationOf(j),to=resolveWorldLocation(result.value);if(to){const route=routeFromTo(from.id,to.id);j.story.locationId=to.id;j.story.location=to.n;if(!j.story.visited.includes(to.n))j.story.visited.push(to.n);e.push(route?`Sailed ${from.n} → ${to.n} by ${String(route.u||route.t).replaceAll('_',' ')}${route.d?` in about ${route.d} days`:''}. Route danger ${route.z??'unrated'}.`:`Sailed open water from ${from.n} to ${to.n}.`);e.push(`Arrived in ${regionLabel(to.r)} · ${to.f==='neutral'?'neutral waters':String(to.f).replaceAll('_',' ')}.`);}else{j.story.location=result.value;if(!j.story.visited.includes(result.value))j.story.visited.push(result.value);}}
  if(event==='dream'){
@@ -267,6 +294,7 @@ function settle(j,result){
  if(result.value==='breakthrough')improve(j,a.target,Math.round(15*multiplier),e);
  if(result.value==='strain')injury(j,1,e);
  if(result.value==='stalled')e.push('No skill progress this chapter.');
+ if(result.value==='shareMastery'){j.story.legacy++;e.push('A mastered lesson becomes someone else’s beginning. Legacy +1.');}
  }else if(event==='fruit'||event==='provisions'){
  if(event==='provisions'&&result.value!=='store'){const item=j.inventory.find(i=>i.name===a.fruitName);if(item){item.count--;j.inventory=j.inventory.filter(i=>i.count>0);}}
  if(result.value==='eat'){j.character.devilFruit='Yes';j.character.fruitType=a.fruitType;j.character.fruit=a.fruitName;j.skills.fruitMastery=0;j.story.fruitAcquiredMonth=j.elapsedMonths;e.push(`Ate ${a.fruitName}. Fruit mastery begins at Just eaten. You can no longer swim.`);}
@@ -290,14 +318,14 @@ function settle(j,result){
  }
  }else if(event==='treasure')treasureEffect(j,result.value,e);
  else if(event==='weapon'){
- const slots=Object.keys(j.skills).filter(k=>k.startsWith('weaponMastery_')).sort((a,b)=>j.skills[a]-j.skills[b]);
+ const slots=Object.keys(j.skills).filter(k=>k.startsWith('weaponMastery_')&&(result.value!=='Maintain your weapons'||!developmentEnabled(j)||canImprove(j,k))).sort((a,b)=>j.skills[a]-j.skills[b]);
  if(result.value==='Maintain your weapons'){improve(j,slots[0],5,e);}
  else if(slots.length){const key=slots[0],weaponKey=key.replace('weaponMastery','weapon');giveItem(j,j.character[weaponKey],'weapon',e);j.character[weaponKey]=result.value;j.skills[key]=10;e.push(`Equipped ${result.value} in slot ${key.split('_')[1]}; mastery starts at Novice.`);}else treasureEffect(j,result.value,e);
  }else if(event==='recruit'){
  if(result.value==='scam')cash(j,-25000,e);
  else if(a.recruitResult==='join') {j.crew.push({name:result.value,role:result.note,race:'Unrecorded',canon:false});j.recruits++;e.push(`${result.value}, ${result.note}, joins you.`);if(!j.group)j.group='Your traveling companions';}
  }else if(event==='quiet'||event==='celebration'){
- if(result.value==='rest')injury(j,-2,e);if(result.value==='work')cash(j,5000,e);if(result.value==='practice')improve(j,'fightingMastery',3,e);
+ if(result.value==='rest')injury(j,-2-(hasCrewPerk(j,'Cook')?1:0),e);if(result.value==='work')cash(j,5000,e);if(result.value==='practice')improve(j,'fightingMastery',3,e);
  }else if(event==='trade'){
  if(result.value==='profit')cash(j,20000,e);if(result.value==='loss')cash(j,-10000,e);if(result.value==='manual')improve(j,'fightingMastery',10,e);if(result.value==='medicine')injury(j,-2,e);
  }else if(event==='island'){
@@ -319,19 +347,22 @@ function settle(j,result){
  j.peakPower=Math.max(j.peakPower,combatPower(j));
  if(j.alive&&naturalDeathChance(j.character.race,p.startAge,p.months)>0)p.phase='aging';else finishEvent(j);
 }
-export function applyJourneyRoll(j,value){
+export function applyJourneyRoll(j,value,{choice=false}={}){
  if(j.legacyPending){const record=legacy.applyJourneyRoll(j,value);j.legacyCutover=j.rolls.length;if(!j.pending){j.legacyPending=false;delete j.story;initializeStory(j);ensureSimulation(j);}return record;}
  const s=nextJourneyStep(j);if(!s)throw new Error('This journey has ended.');
+ if((s.kind==='choice')!==choice)throw new Error(s.kind==='choice'?'Choose an intent before spinning.':'This stage requires a fate roll.');
+ const development=developmentEnabled(j);
  const selected=s.options.find(o=>o.value===value);if(!selected)throw new Error('That result is not available on this wheel.');
  const record={id:s.id,value,label:selected.label,chance:probability(s.options,value),wheel:s.label,...(s.modifier?{modifier:{...s.modifier}}:{})};
- j.rolls.push({id:s.id,value});
+ j.rolls.push({id:s.id,value,...(choice?{kind:'choice'}:{})});
+ if(choice){record.kind='choice';delete record.chance;}
  if(s.key==='startLocation'){
   const loc=resolveWorldLocation(value);if(!loc)throw new Error('Unknown starting location.');
   j.story.locationId=loc.id;j.story.location=loc.n;j.story.visited=[loc.n];j.startLocationResolved=true;
   return record;
  }
  if(s.key==='event'){
- j.pending={event:value,location:j.story.location,narrative:chapterPremise(j,value),startAge:j.ageMonths,months:0,picks:{},phase:'event',effects:[],rolls:[record]};return record;
+ j.pending={...(development?{developmentVersion:1}:{}),event:value,location:j.story.location,narrative:chapterPremise(j,value),startAge:j.ageMonths,months:0,picks:{},phase:'event',effects:[],rolls:[record]};return record;
  }
  const p=j.pending;p.rolls.push(record);
  if(s.key==='aging'){
@@ -340,21 +371,23 @@ export function applyJourneyRoll(j,value){
  }
  p.picks[s.key]=value;
  if(s.key==='storedFruit'){p.picks.fruitName=value;p.picks.fruitType=Object.keys(fruits).find(type=>fruits[type].some(f=>f.value===value));return record;}
+ if(s.key==='campaign'){p.narrative=CROSSROAD_BY_ID[value].premise;return record;}
  if(s.key==='sagaId'){p.narrative=`${SAGA_BY_ID[value].title}: ${sagaScene(j,value).text}`;return record;}
- const intermediary=['opponent','tone','mentor','instinct','duration','target','trainingInstinct','fruitType','fruitName'];
+ const intermediary=['campaign','campaignIntent','crewFocus','crewIntent','territoryIntent','combatIntent','sagaIntent','technique','opponent','tone','mentor','instinct','duration','target','trainingInstinct','fruitType','fruitName'];
  if(intermediary.includes(s.key))return record;
  if(s.key==='awakening'&&value==='yes')return record;
  if(s.key==='recruitResult'&&value==='join')return record;
  settle(j,selected);return record;
 }
-export function rollJourney(j,random=Math.random){const s=nextJourneyStep(j);if(!s)return null;return applyJourneyRoll(j,weightedPick(s.options,random).value);}
+export function applyJourneyChoice(j,value){return applyJourneyRoll(j,value,{choice:true});}
+export function rollJourney(j,random=Math.random){const s=nextJourneyStep(j);if(!s)return null;return applyJourneyRoll(j,weightedPick(s.options,random).value,{choice:s.kind==='choice'});}
 export function saveDocument(history,j){
  const base=characterDocument(history);
- return {...base,schemaVersion:SAVE_VERSION,character:j?liveCharacter(j):base.character,journey:j?{version:JOURNEY_VERSION,sagaCutover:j.sagaCutover??0,simulationCutover:j.simulationCutover??0,startLocationRollVersion:j.startLocationRollVersion??0,heritageVersion:j.heritageVersion??0,legacyRolls:j.rolls.slice(0,j.legacyCutover),rolls:j.rolls.slice(j.legacyCutover)}:null};
+ return {...base,schemaVersion:SAVE_VERSION,character:j?liveCharacter(j):base.character,journey:j?{version:JOURNEY_VERSION,developmentCutover:j.developmentCutover??0,sagaCutover:j.sagaCutover??0,simulationCutover:j.simulationCutover??0,startLocationRollVersion:j.startLocationRollVersion??0,heritageVersion:j.heritageVersion??0,legacyRolls:j.rolls.slice(0,j.legacyCutover),rolls:j.rolls.slice(j.legacyCutover)}:null};
 }
 function upgradeLegacy(history,rolls){
  const j=legacy.loadDocument({game:'Grand Line Origins',schemaVersion:2,history,journey:{version:1,rolls}}).journey;
- j.sagaCutover=0;j.version=JOURNEY_VERSION;j.legacyCutover=j.rolls.length;j.legacyPending=!!j.pending;j.simulationCutover=0;j.startLocationRollVersion=0;j.startLocationResolved=true;j.heritageVersion=0;j.heritage=heritageProfile(j.character);initializeStory(j);ensureSimulation(j);return j;
+ j.developmentCutover=0;j.sagaCutover=0;j.version=JOURNEY_VERSION;j.legacyCutover=j.rolls.length;j.legacyPending=!!j.pending;j.simulationCutover=0;j.startLocationRollVersion=0;j.startLocationResolved=true;j.heritageVersion=0;j.heritage=heritageProfile(j.character);initializeStory(j);ensureSimulation(j);return j;
 }
 export function loadDocument(doc){
  if(!doc||doc.game!=='Grand Line Origins'||![1,2,SAVE_VERSION].includes(doc.schemaVersion))throw new Error('This is not a supported Grand Line Origins save.');
@@ -367,6 +400,9 @@ export function loadDocument(doc){
  if(doc.journey.version!==JOURNEY_VERSION||!Array.isArray(doc.journey.rolls)||!Array.isArray(old)||doc.journey.rolls.length+old.length>20000)throw new Error('Invalid journey save.');
  const heritageVersion=Number.isInteger(doc.journey.heritageVersion)?doc.journey.heritageVersion:0;
  journey=old.length?upgradeLegacy(history,old):createJourney(history,{heritageVersion});
+ const developmentCutover=doc.journey.developmentCutover;
+ if(developmentCutover!==undefined&&(!Number.isInteger(developmentCutover)||developmentCutover<0||developmentCutover>doc.journey.rolls.length))throw new Error('Invalid development cutover.');
+ journey.developmentCutover=developmentCutover??doc.journey.rolls.length;
  const sagaCutover=doc.journey.sagaCutover;
  if(sagaCutover!==undefined&&(!Number.isInteger(sagaCutover)||sagaCutover<0||sagaCutover>doc.journey.rolls.length))throw new Error('Invalid saga cutover.');
  journey.sagaCutover=sagaCutover??doc.journey.rolls.length;
@@ -375,7 +411,7 @@ export function loadDocument(doc){
  const hasSimulationCutover=Number.isInteger(doc.journey.simulationCutover)&&doc.journey.simulationCutover>=0&&doc.journey.simulationCutover<=doc.journey.rolls.length;
  journey.simulationCutover=hasSimulationCutover?doc.journey.simulationCutover:doc.journey.rolls.length;
  if(journey.legacyPending&&doc.journey.rolls.length)throw new Error('Finish the saved legacy chapter before adding new story rolls.');
- for(const record of doc.journey.rolls){const s=nextJourneyStep(journey);if(!s||s.id!==record?.id)throw new Error('Journey rolls are out of order or continue after death.');applyJourneyRoll(journey,record.value);}
+ for(const record of doc.journey.rolls){const s=nextJourneyStep(journey);if(!s||s.id!==record?.id)throw new Error('Journey rolls are out of order or continue after death.');if((record.kind!==undefined&&record.kind!=='choice')||(s.kind==='choice')!==(record.kind==='choice'))throw new Error('Invalid choice record.');applyJourneyRoll(journey,record.value,{choice:s.kind==='choice'});}
  if(!hasSimulationCutover){delete journey.simulation;ensureSimulation(journey);}
  }
  return {history,journey};

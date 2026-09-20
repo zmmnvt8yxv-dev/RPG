@@ -1,11 +1,12 @@
 {
   "name": "grand-line-origins",
-  "version": "4.0.0",
+  "version": "5.0.0",
   "private": true,
   "type": "module",
   "scripts": {
     "test": "node --test",
-    "start": "python3 -m http.server 8000",
-    "docs:sagas": "node scripts/generate-saga-atlas.mjs"
+    "start": "node scripts/serve.mjs",
+    "docs:sagas": "node scripts/generate-saga-atlas.mjs",
+    "docs:development": "node scripts/generate-development-guide.mjs"
   }
 }

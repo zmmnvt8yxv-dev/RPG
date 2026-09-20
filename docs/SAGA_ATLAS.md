@@ -2,7 +2,7 @@
 
 18 sagas · 72 scenes · 216 authored outcome edges · 342 complete paths.
 
-Generated from the playable data by `npm run docs:sagas`. Each arrow is a real wheel result. The wheel chooses the response; the player does not click a tactical choice. Branches reconverge with different evidence, trust, injuries, money and relationships, so reaching the same scene need not produce the same odds.
+Generated from the playable data by `npm run docs:sagas`. Each arrow is a real wheel result. The player chooses an intent; the wheel determines which consequence follows. The path count describes outcome paths before intent variations. Branches reconverge with different evidence, trust, injuries, money and relationships, so reaching the same scene need not produce the same odds.
 
 Each scene is one four-month chapter. Saga selection adds no time. Ordinary chapters can interrupt the thread. Site-specific sagas pause away from their mapped locations. Era filters are starting-era snapshots; this is an alternate chronology, not a calendar reconstruction. Captivity overrides the horizon and death ends the journey.
 

@@ -1,3 +1,5 @@
+import {developmentEnabled,canImprove,intentWeight,usefulPractice} from './development.js';
+import {crewPerkFactor} from './crew-stories.js';
 import {SAGAS,SAGA_BY_ID} from './saga-data.js';
 import {eras} from './engine.js';
 import {worldLocationOf} from './world-map.js';
@@ -46,8 +48,10 @@ export function sagaOptions(j,id){
  if(['wound','capture','setback'].includes(edge.effect)){weight*=1+j.injury*.12+(j.story.sagaHeat||0)*.05;reasons.push('Injury and accumulated government heat increase the risk.');}
  if(edge.effect==='supply'&&j.berries<10000){weight*=.35;reasons.push('Limited funds make provisioning harder; no debt is created.');}
  if(edge.effect==='betrayal'&&j.character.faction==='Cipher Pol'){weight*=1.5;reasons.push('Intelligence contacts make this bargain more accessible.');}
+ if(developmentEnabled(j))weight*=intentWeight(j.pending?.picks.sagaIntent,edge.effect)*crewPerkFactor(j,'saga',edge.effect);
+ const consequence=developmentEnabled(j)&&effect.skill&&!canImprove(j,'battleIQ')?effect.label.replace(/Practice \+8 Battle IQ|practice \+5 Battle IQ/,'Mastery shared: legacy +1'):effect.label;
  const next=edge.next?s.nodes[edge.next].title:'Concludes this saga';
- return {value:edge.id,label:edge.label,weight,note:`${edge.detail} → ${next}. ${effect.label}. ${reasons.join(' ')}`};
+ return {value:edge.id,label:edge.label,weight,note:`${edge.detail} → ${next}. ${consequence}. ${reasons.join(' ')}`};
  });
 }
 const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
@@ -57,7 +61,8 @@ export function resolveSaga(j,id,value){
  const effects=[edge.detail];
  state.history.push({node:state.node,edge:value,chapter:j.chapter+1,location:j.story.location});
  state.evidence+=f.evidence||0;state.trust+=f.trust||0;
- if(f.skill&&'battleIQ' in j.skills){const before=j.skills.battleIQ;j.skills.battleIQ=Math.min(140,before+f.skill);effects.push(`Battle IQ practice +${j.skills.battleIQ-before}.`);}
+ if(f.skill&&developmentEnabled(j))usefulPractice(j,'battleIQ',f.skill,effects);
+ else if(f.skill&&'battleIQ' in j.skills){const before=j.skills.battleIQ;j.skills.battleIQ=Math.min(140,before+f.skill);effects.push(`Battle IQ practice +${j.skills.battleIQ-before}.`);}
  if(f.clues){j.story.dreamClues+=f.clues;effects.push(`Dream leads +${f.clues}.`);}
  if(f.cash){const before=j.berries;j.berries=Math.max(0,j.berries+f.cash);effects.push(`Berries ${j.berries-before>=0?'+':''}${j.berries-before}; purse ${j.berries}.`);}
  if(f.injury){j.injury=clamp(j.injury+f.injury,0,5);effects.push(`Injury burden ${j.injury}/5.`);}

@@ -1,0 +1,1256 @@
+[
+  {
+    "doc": {
+      "schemaVersion": 3,
+      "game": "Grand Line Origins",
+      "complete": true,
+      "name": "Voss Iris",
+      "timeline": "Alternate canon ownership and recruitment",
+      "character": {
+        "era": "New World opening",
+        "race": "Human",
+        "bloodline": "No",
+        "willD": "No",
+        "age": "24y",
+        "height": "185 cm",
+        "dream": "Free an oppressed homeland",
+        "faction": "Pirate",
+        "bounty": "No bounty yet",
+        "surname": "Voss",
+        "name": "Iris",
+        "haki": "No",
+        "devilFruit": "No",
+        "fightingStyle": "Black Leg-inspired kicks",
+        "fightingMastery": "Novice",
+        "battleIQ": "Average",
+        "strength": "Ordinary",
+        "durability": "Ordinary",
+        "speed": "Ordinary",
+        "endurance": "Ordinary",
+        "stamina": "Ordinary",
+        "crewMode": "Go solo",
+        "hakiTypes": "",
+        "heritageStyles": "",
+        "crewSize": "0"
+      },
+      "history": [
+        {
+          "id": "era",
+          "label": "When does your story begin?",
+          "group": "Origins",
+          "value": "New World opening",
+          "note": "",
+          "chance": 25
+        },
+        {
+          "id": "race",
+          "label": "Which people do you belong to?",
+          "group": "Origins",
+          "value": "Human",
+          "note": "70% of the adventure-biased origin pool. No automatic attribute shifts.",
+          "chance": 70
+        },
+        {
+          "id": "bloodline",
+          "label": "A famous family in your past?",
+          "group": "Origins",
+          "value": "No",
+          "note": "",
+          "chance": 90
+        },
+        {
+          "id": "willD",
+          "label": "Do you carry the initial D.?",
+          "group": "Origins",
+          "value": "No",
+          "note": "",
+          "chance": 99.5
+        },
+        {
+          "id": "age",
+          "label": "How old are you?",
+          "group": "Origins",
+          "value": "24",
+          "note": "",
+          "chance": 24
+        },
+        {
+          "id": "height",
+          "label": "How tall are you?",
+          "group": "Origins",
+          "value": "185 cm",
+          "note": "",
+          "chance": 35
+        },
+        {
+          "id": "dream",
+          "label": "What dream drives you?",
+          "group": "Identity",
+          "value": "Free an oppressed homeland",
+          "note": "",
+          "chance": 6.25
+        },
+        {
+          "id": "faction",
+          "label": "Which path will you walk?",
+          "group": "Identity",
+          "value": "Pirate",
+          "note": "",
+          "chance": 24
+        },
+        {
+          "id": "bounty",
+          "label": "Your starting bounty",
+          "group": "Identity",
+          "value": "No bounty yet",
+          "note": "",
+          "chance": 60
+        },
+        {
+          "id": "surname",
+          "label": "Your family name",
+          "group": "Identity",
+          "value": "Voss",
+          "note": "",
+          "chance": 8.333333333333332
+        },
+        {
+          "id": "name",
+          "label": "Your given name",
+          "group": "Identity",
+          "value": "Iris",
+          "note": "",
+          "chance": 5
+        },
+        {
+          "id": "haki",
+          "label": "Have you awakened Haki?",
+          "group": "Powers",
+          "value": "No",
+          "note": "",
+          "chance": 88
+        },
+        {
+          "id": "devilFruit",
+          "label": "Have you eaten a Devil Fruit?",
+          "group": "Powers",
+          "value": "No",
+          "note": "",
+          "chance": 84
+        },
+        {
+          "id": "fightingStyle",
+          "label": "How do you fight?",
+          "group": "Combat",
+          "value": "Black Leg-inspired kicks",
+          "note": "",
+          "chance": 12
+        },
+        {
+          "id": "fightingMastery",
+          "label": "Fighting mastery",
+          "group": "Combat",
+          "value": "Novice",
+          "note": "",
+          "chance": 35
+        },
+        {
+          "id": "battleIQ",
+          "label": "Battle IQ",
+          "group": "Attributes",
+          "value": "Average",
+          "note": "",
+          "chance": 35
+        },
+        {
+          "id": "strength",
+          "label": "Strength",
+          "group": "Attributes",
+          "value": "Ordinary",
+          "note": "",
+          "chance": 44
+        },
+        {
+          "id": "durability",
+          "label": "Durability",
+          "group": "Attributes",
+          "value": "Ordinary",
+          "note": "",
+          "chance": 44
+        },
+        {
+          "id": "speed",
+          "label": "Speed",
+          "group": "Attributes",
+          "value": "Ordinary",
+          "note": "",
+          "chance": 44
+        },
+        {
+          "id": "endurance",
+          "label": "Endurance",
+          "group": "Attributes",
+          "value": "Ordinary",
+          "note": "",
+          "chance": 44
+        },
+        {
+          "id": "stamina",
+          "label": "Stamina",
+          "group": "Attributes",
+          "value": "Ordinary",
+          "note": "",
+          "chance": 44
+        },
+        {
+          "id": "crewMode",
+          "label": "Who sails beside you?",
+          "group": "Crew",
+          "value": "Go solo",
+          "note": "",
+          "chance": 45
+        }
+      ],
+      "journey": {
+        "version": 2,
+        "sagaCutover": 0,
+        "simulationCutover": 0,
+        "startLocationRollVersion": 1,
+        "heritageVersion": 1,
+        "legacyRolls": [],
+        "rolls": [
+          {
+            "id": "0:startLocation",
+            "value": "island_egghead_island"
+          },
+          {
+            "id": "1:event",
+            "value": "saga"
+          },
+          {
+            "id": "1:sagaId",
+            "value": "egghead"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "version": 2,
+      "character": {
+        "era": "New World opening",
+        "race": "Human",
+        "bloodline": "No",
+        "willD": "No",
+        "age": "24",
+        "height": "185 cm",
+        "dream": "Free an oppressed homeland",
+        "faction": "Pirate",
+        "bounty": "No bounty yet",
+        "surname": "Voss",
+        "name": "Iris",
+        "haki": "No",
+        "devilFruit": "No",
+        "fightingStyle": "Black Leg-inspired kicks",
+        "fightingMastery": "Novice",
+        "battleIQ": "Average",
+        "strength": "Ordinary",
+        "durability": "Ordinary",
+        "speed": "Ordinary",
+        "endurance": "Ordinary",
+        "stamina": "Ordinary",
+        "crewMode": "Go solo"
+      },
+      "skills": {
+        "fightingMastery": 10,
+        "battleIQ": 10,
+        "strength": 0,
+        "durability": 0,
+        "speed": 0,
+        "endurance": 0,
+        "stamina": 0
+      },
+      "heritageVersion": 1,
+      "heritage": {
+        "bonuses": {},
+        "styles": [],
+        "guaranteedHaki": [],
+        "hakiBonus": 0,
+        "conquerorMultiplier": 1
+      },
+      "crew": [],
+      "group": null,
+      "groupSupport": 0,
+      "startAgeMonths": 288,
+      "ageMonths": 288,
+      "elapsedMonths": 0,
+      "alive": true,
+      "cause": null,
+      "chapter": 0,
+      "pending": {
+        "event": "saga",
+        "location": "Egghead Island",
+        "narrative": "The signal that outlived its speaker: A technician asks you to carry a broadcast relay out of the siege. Nearby civilians need the same transport.",
+        "startAge": 288,
+        "months": 0,
+        "picks": {
+          "sagaId": "egghead"
+        },
+        "phase": "event",
+        "effects": [],
+        "rolls": [
+          {
+            "id": "1:event",
+            "value": "saga",
+            "label": "A promise becomes a saga",
+            "chance": 8.086253369272239,
+            "wheel": "What lies on the horizon?"
+          },
+          {
+            "id": "1:sagaId",
+            "value": "egghead",
+            "label": "The signal that outlived its speaker",
+            "chance": 71.42857142857143,
+            "wheel": "Which unfinished story finds you?"
+          }
+        ]
+      },
+      "rolls": [
+        {
+          "id": "0:startLocation",
+          "value": "island_egghead_island"
+        },
+        {
+          "id": "1:event",
+          "value": "saga"
+        },
+        {
+          "id": "1:sagaId",
+          "value": "egghead"
+        }
+      ],
+      "log": [],
+      "injury": 0,
+      "captured": false,
+      "berries": 0,
+      "bounty": 0,
+      "inventory": [],
+      "danger": 0,
+      "wins": 0,
+      "losses": 0,
+      "kills": 0,
+      "discoveries": 0,
+      "recruits": 0,
+      "peakPower": 15,
+      "startLocationRollVersion": 1,
+      "startLocationResolved": true,
+      "sagaCutover": 0,
+      "legacyCutover": 0,
+      "legacyPending": false,
+      "simulationCutover": 0,
+      "story": {
+        "location": "Egghead Island",
+        "visited": [
+          "Egghead Island"
+        ],
+        "dreamProgress": 0,
+        "dreamClues": 0,
+        "milestones": [],
+        "relationships": {},
+        "dead": [],
+        "fruitAcquiredMonth": null,
+        "mentored": 0,
+        "legacy": 0,
+        "locationId": "island_egghead_island"
+      },
+      "simulation": {
+        "version": 1,
+        "stability": 88,
+        "governmentControl": 78,
+        "activeLaws": [],
+        "dangerZones": {},
+        "destroyedLocations": [],
+        "executions": [],
+        "crewDeaths": [],
+        "crewDepartures": [],
+        "worldFlags": []
+      }
+    }
+  },
+  {
+    "doc": {
+      "schemaVersion": 3,
+      "game": "Grand Line Origins",
+      "complete": true,
+      "name": "Voss Iris",
+      "timeline": "Alternate canon ownership and recruitment",
+      "character": {
+        "era": "New World opening",
+        "race": "Human",
+        "bloodline": "No",
+        "willD": "No",
+        "age": "24y 4m",
+        "height": "185 cm",
+        "dream": "Free an oppressed homeland",
+        "faction": "Pirate",
+        "bounty": "No bounty yet",
+        "surname": "Voss",
+        "name": "Iris",
+        "haki": "No",
+        "devilFruit": "No",
+        "fightingStyle": "Black Leg-inspired kicks",
+        "fightingMastery": "Novice",
+        "battleIQ": "Average",
+        "strength": "Ordinary",
+        "durability": "Ordinary",
+        "speed": "Ordinary",
+        "endurance": "Ordinary",
+        "stamina": "Ordinary",
+        "crewMode": "Go solo",
+        "hakiTypes": "",
+        "heritageStyles": "",
+        "crewSize": "0"
+      },
+      "history": [
+        {
+          "id": "era",
+          "label": "When does your story begin?",
+          "group": "Origins",
+          "value": "New World opening",
+          "note": "",
+          "chance": 25
+        },
+        {
+          "id": "race",
+          "label": "Which people do you belong to?",
+          "group": "Origins",
+          "value": "Human",
+          "note": "70% of the adventure-biased origin pool. No automatic attribute shifts.",
+          "chance": 70
+        },
+        {
+          "id": "bloodline",
+          "label": "A famous family in your past?",
+          "group": "Origins",
+          "value": "No",
+          "note": "",
+          "chance": 90
+        },
+        {
+          "id": "willD",
+          "label": "Do you carry the initial D.?",
+          "group": "Origins",
+          "value": "No",
+          "note": "",
+          "chance": 99.5
+        },
+        {
+          "id": "age",
+          "label": "How old are you?",
+          "group": "Origins",
+          "value": "24",
+          "note": "",
+          "chance": 24
+        },
+        {
+          "id": "height",
+          "label": "How tall are you?",
+          "group": "Origins",
+          "value": "185 cm",
+          "note": "",
+          "chance": 35
+        },
+        {
+          "id": "dream",
+          "label": "What dream drives you?",
+          "group": "Identity",
+          "value": "Free an oppressed homeland",
+          "note": "",
+          "chance": 6.25
+        },
+        {
+          "id": "faction",
+          "label": "Which path will you walk?",
+          "group": "Identity",
+          "value": "Pirate",
+          "note": "",
+          "chance": 24
+        },
+        {
+          "id": "bounty",
+          "label": "Your starting bounty",
+          "group": "Identity",
+          "value": "No bounty yet",
+          "note": "",
+          "chance": 60
+        },
+        {
+          "id": "surname",
+          "label": "Your family name",
+          "group": "Identity",
+          "value": "Voss",
+          "note": "",
+          "chance": 8.333333333333332
+        },
+        {
+          "id": "name",
+          "label": "Your given name",
+          "group": "Identity",
+          "value": "Iris",
+          "note": "",
+          "chance": 5
+        },
+        {
+          "id": "haki",
+          "label": "Have you awakened Haki?",
+          "group": "Powers",
+          "value": "No",
+          "note": "",
+          "chance": 88
+        },
+        {
+          "id": "devilFruit",
+          "label": "Have you eaten a Devil Fruit?",
+          "group": "Powers",
+          "value": "No",
+          "note": "",
+          "chance": 84
+        },
+        {
+          "id": "fightingStyle",
+          "label": "How do you fight?",
+          "group": "Combat",
+          "value": "Black Leg-inspired kicks",
+          "note": "",
+          "chance": 12
+        },
+        {
+          "id": "fightingMastery",
+          "label": "Fighting mastery",
+          "group": "Combat",
+          "value": "Novice",
+          "note": "",
+          "chance": 35
+        },
+        {
+          "id": "battleIQ",
+          "label": "Battle IQ",
+          "group": "Attributes",
+          "value": "Average",
+          "note": "",
+          "chance": 35
+        },
+        {
+          "id": "strength",
+          "label": "Strength",
+          "group": "Attributes",
+          "value": "Ordinary",
+          "note": "",
+          "chance": 44
+        },
+        {
+          "id": "durability",
+          "label": "Durability",
+          "group": "Attributes",
+          "value": "Ordinary",
+          "note": "",
+          "chance": 44
+        },
+        {
+          "id": "speed",
+          "label": "Speed",
+          "group": "Attributes",
+          "value": "Ordinary",
+          "note": "",
+          "chance": 44
+        },
+        {
+          "id": "endurance",
+          "label": "Endurance",
+          "group": "Attributes",
+          "value": "Ordinary",
+          "note": "",
+          "chance": 44
+        },
+        {
+          "id": "stamina",
+          "label": "Stamina",
+          "group": "Attributes",
+          "value": "Ordinary",
+          "note": "",
+          "chance": 44
+        },
+        {
+          "id": "crewMode",
+          "label": "Who sails beside you?",
+          "group": "Crew",
+          "value": "Go solo",
+          "note": "",
+          "chance": 45
+        }
+      ],
+      "journey": {
+        "version": 2,
+        "sagaCutover": 0,
+        "simulationCutover": 0,
+        "startLocationRollVersion": 1,
+        "heritageVersion": 1,
+        "legacyRolls": [],
+        "rolls": [
+          {
+            "id": "0:startLocation",
+            "value": "island_egghead_island"
+          },
+          {
+            "id": "1:event",
+            "value": "saga"
+          },
+          {
+            "id": "1:sagaId",
+            "value": "egghead"
+          },
+          {
+            "id": "1:sagaChoice",
+            "value": "0"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "version": 2,
+      "character": {
+        "era": "New World opening",
+        "race": "Human",
+        "bloodline": "No",
+        "willD": "No",
+        "age": "24",
+        "height": "185 cm",
+        "dream": "Free an oppressed homeland",
+        "faction": "Pirate",
+        "bounty": "No bounty yet",
+        "surname": "Voss",
+        "name": "Iris",
+        "haki": "No",
+        "devilFruit": "No",
+        "fightingStyle": "Black Leg-inspired kicks",
+        "fightingMastery": "Novice",
+        "battleIQ": "Average",
+        "strength": "Ordinary",
+        "durability": "Ordinary",
+        "speed": "Ordinary",
+        "endurance": "Ordinary",
+        "stamina": "Ordinary",
+        "crewMode": "Go solo"
+      },
+      "skills": {
+        "fightingMastery": 10,
+        "battleIQ": 18,
+        "strength": 0,
+        "durability": 0,
+        "speed": 0,
+        "endurance": 0,
+        "stamina": 0
+      },
+      "heritageVersion": 1,
+      "heritage": {
+        "bonuses": {},
+        "styles": [],
+        "guaranteedHaki": [],
+        "hakiBonus": 0,
+        "conquerorMultiplier": 1
+      },
+      "crew": [],
+      "group": null,
+      "groupSupport": 0,
+      "startAgeMonths": 288,
+      "ageMonths": 292,
+      "elapsedMonths": 4,
+      "alive": true,
+      "cause": null,
+      "chapter": 1,
+      "pending": null,
+      "rolls": [
+        {
+          "id": "0:startLocation",
+          "value": "island_egghead_island"
+        },
+        {
+          "id": "1:event",
+          "value": "saga"
+        },
+        {
+          "id": "1:sagaId",
+          "value": "egghead"
+        },
+        {
+          "id": "1:sagaChoice",
+          "value": "0"
+        }
+      ],
+      "log": [
+        {
+          "chapter": 1,
+          "event": "saga",
+          "sagaId": "egghead",
+          "location": "Egghead Island",
+          "narrative": "The signal that outlived its speaker: A technician asks you to carry a broadcast relay out of the siege. Nearby civilians need the same transport.",
+          "encounter": null,
+          "title": "The signal that outlived its speaker",
+          "startAge": 288,
+          "age": 292,
+          "months": 4,
+          "result": "Authenticate the relay’s recorded message",
+          "effects": [
+            "You distinguish a signed recording from a broker’s sensational additions.",
+            "Battle IQ practice +8.",
+            "Dream leads +1.",
+            "Next thread: Memory is not merchandise. Other chapters can happen before this promise returns."
+          ],
+          "rolls": [
+            {
+              "id": "1:event",
+              "value": "saga",
+              "label": "A promise becomes a saga",
+              "chance": 8.086253369272239,
+              "wheel": "What lies on the horizon?"
+            },
+            {
+              "id": "1:sagaId",
+              "value": "egghead",
+              "label": "The signal that outlived its speaker",
+              "chance": 71.42857142857143,
+              "wheel": "Which unfinished story finds you?"
+            },
+            {
+              "id": "1:sagaChoice",
+              "value": "0",
+              "label": "Authenticate the relay’s recorded message",
+              "chance": 45.31250000000001,
+              "wheel": "A relay snail in a sealed crate"
+            }
+          ],
+          "alive": true
+        }
+      ],
+      "injury": 0,
+      "captured": false,
+      "berries": 0,
+      "bounty": 0,
+      "inventory": [],
+      "danger": 0,
+      "wins": 0,
+      "losses": 0,
+      "kills": 0,
+      "discoveries": 0,
+      "recruits": 0,
+      "peakPower": 15,
+      "startLocationRollVersion": 1,
+      "startLocationResolved": true,
+      "sagaCutover": 0,
+      "legacyCutover": 0,
+      "legacyPending": false,
+      "simulationCutover": 0,
+      "story": {
+        "location": "Egghead Island",
+        "visited": [
+          "Egghead Island"
+        ],
+        "dreamProgress": 0,
+        "dreamClues": 1,
+        "milestones": [],
+        "relationships": {},
+        "dead": [],
+        "fruitAcquiredMonth": null,
+        "mentored": 0,
+        "legacy": 0,
+        "locationId": "island_egghead_island",
+        "sagas": {
+          "egghead": {
+            "node": "investigation",
+            "evidence": 0,
+            "trust": 0,
+            "history": [
+              {
+                "node": "opening",
+                "edge": "0",
+                "chapter": 1,
+                "location": "Egghead Island"
+              }
+            ]
+          }
+        }
+      },
+      "simulation": {
+        "version": 1,
+        "stability": 88,
+        "governmentControl": 78,
+        "activeLaws": [],
+        "dangerZones": {},
+        "destroyedLocations": [],
+        "executions": [],
+        "crewDeaths": [],
+        "crewDepartures": [],
+        "worldFlags": []
+      }
+    }
+  },
+  {
+    "doc": {
+      "schemaVersion": 3,
+      "game": "Grand Line Origins",
+      "complete": true,
+      "name": "Voss Iris",
+      "timeline": "Alternate canon ownership and recruitment",
+      "character": {
+        "era": "New World opening",
+        "race": "Human",
+        "bloodline": "No",
+        "willD": "No",
+        "age": "24y 4m",
+        "height": "185 cm",
+        "dream": "Free an oppressed homeland",
+        "faction": "Pirate",
+        "bounty": "No bounty yet",
+        "surname": "Voss",
+        "name": "Iris",
+        "haki": "No",
+        "devilFruit": "No",
+        "fightingStyle": "Black Leg-inspired kicks",
+        "fightingMastery": "Novice",
+        "battleIQ": "Average",
+        "strength": "Ordinary",
+        "durability": "Ordinary",
+        "speed": "Ordinary",
+        "endurance": "Ordinary",
+        "stamina": "Ordinary",
+        "crewMode": "Go solo",
+        "hakiTypes": "",
+        "heritageStyles": "",
+        "crewSize": "0"
+      },
+      "history": [
+        {
+          "id": "era",
+          "label": "When does your story begin?",
+          "group": "Origins",
+          "value": "New World opening",
+          "note": "",
+          "chance": 25
+        },
+        {
+          "id": "race",
+          "label": "Which people do you belong to?",
+          "group": "Origins",
+          "value": "Human",
+          "note": "70% of the adventure-biased origin pool. No automatic attribute shifts.",
+          "chance": 70
+        },
+        {
+          "id": "bloodline",
+          "label": "A famous family in your past?",
+          "group": "Origins",
+          "value": "No",
+          "note": "",
+          "chance": 90
+        },
+        {
+          "id": "willD",
+          "label": "Do you carry the initial D.?",
+          "group": "Origins",
+          "value": "No",
+          "note": "",
+          "chance": 99.5
+        },
+        {
+          "id": "age",
+          "label": "How old are you?",
+          "group": "Origins",
+          "value": "24",
+          "note": "",
+          "chance": 24
+        },
+        {
+          "id": "height",
+          "label": "How tall are you?",
+          "group": "Origins",
+          "value": "185 cm",
+          "note": "",
+          "chance": 35
+        },
+        {
+          "id": "dream",
+          "label": "What dream drives you?",
+          "group": "Identity",
+          "value": "Free an oppressed homeland",
+          "note": "",
+          "chance": 6.25
+        },
+        {
+          "id": "faction",
+          "label": "Which path will you walk?",
+          "group": "Identity",
+          "value": "Pirate",
+          "note": "",
+          "chance": 24
+        },
+        {
+          "id": "bounty",
+          "label": "Your starting bounty",
+          "group": "Identity",
+          "value": "No bounty yet",
+          "note": "",
+          "chance": 60
+        },
+        {
+          "id": "surname",
+          "label": "Your family name",
+          "group": "Identity",
+          "value": "Voss",
+          "note": "",
+          "chance": 8.333333333333332
+        },
+        {
+          "id": "name",
+          "label": "Your given name",
+          "group": "Identity",
+          "value": "Iris",
+          "note": "",
+          "chance": 5
+        },
+        {
+          "id": "haki",
+          "label": "Have you awakened Haki?",
+          "group": "Powers",
+          "value": "No",
+          "note": "",
+          "chance": 88
+        },
+        {
+          "id": "devilFruit",
+          "label": "Have you eaten a Devil Fruit?",
+          "group": "Powers",
+          "value": "No",
+          "note": "",
+          "chance": 84
+        },
+        {
+          "id": "fightingStyle",
+          "label": "How do you fight?",
+          "group": "Combat",
+          "value": "Black Leg-inspired kicks",
+          "note": "",
+          "chance": 12
+        },
+        {
+          "id": "fightingMastery",
+          "label": "Fighting mastery",
+          "group": "Combat",
+          "value": "Novice",
+          "note": "",
+          "chance": 35
+        },
+        {
+          "id": "battleIQ",
+          "label": "Battle IQ",
+          "group": "Attributes",
+          "value": "Average",
+          "note": "",
+          "chance": 35
+        },
+        {
+          "id": "strength",
+          "label": "Strength",
+          "group": "Attributes",
+          "value": "Ordinary",
+          "note": "",
+          "chance": 44
+        },
+        {
+          "id": "durability",
+          "label": "Durability",
+          "group": "Attributes",
+          "value": "Ordinary",
+          "note": "",
+          "chance": 44
+        },
+        {
+          "id": "speed",
+          "label": "Speed",
+          "group": "Attributes",
+          "value": "Ordinary",
+          "note": "",
+          "chance": 44
+        },
+        {
+          "id": "endurance",
+          "label": "Endurance",
+          "group": "Attributes",
+          "value": "Ordinary",
+          "note": "",
+          "chance": 44
+        },
+        {
+          "id": "stamina",
+          "label": "Stamina",
+          "group": "Attributes",
+          "value": "Ordinary",
+          "note": "",
+          "chance": 44
+        },
+        {
+          "id": "crewMode",
+          "label": "Who sails beside you?",
+          "group": "Crew",
+          "value": "Go solo",
+          "note": "",
+          "chance": 45
+        }
+      ],
+      "journey": {
+        "version": 2,
+        "sagaCutover": 0,
+        "simulationCutover": 0,
+        "startLocationRollVersion": 1,
+        "heritageVersion": 1,
+        "legacyRolls": [],
+        "rolls": [
+          {
+            "id": "0:startLocation",
+            "value": "island_egghead_island"
+          },
+          {
+            "id": "1:event",
+            "value": "saga"
+          },
+          {
+            "id": "1:sagaId",
+            "value": "egghead"
+          },
+          {
+            "id": "1:sagaChoice",
+            "value": "0"
+          },
+          {
+            "id": "2:event",
+            "value": "saga"
+          },
+          {
+            "id": "2:sagaId",
+            "value": "egghead"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "version": 2,
+      "character": {
+        "era": "New World opening",
+        "race": "Human",
+        "bloodline": "No",
+        "willD": "No",
+        "age": "24",
+        "height": "185 cm",
+        "dream": "Free an oppressed homeland",
+        "faction": "Pirate",
+        "bounty": "No bounty yet",
+        "surname": "Voss",
+        "name": "Iris",
+        "haki": "No",
+        "devilFruit": "No",
+        "fightingStyle": "Black Leg-inspired kicks",
+        "fightingMastery": "Novice",
+        "battleIQ": "Average",
+        "strength": "Ordinary",
+        "durability": "Ordinary",
+        "speed": "Ordinary",
+        "endurance": "Ordinary",
+        "stamina": "Ordinary",
+        "crewMode": "Go solo"
+      },
+      "skills": {
+        "fightingMastery": 10,
+        "battleIQ": 18,
+        "strength": 0,
+        "durability": 0,
+        "speed": 0,
+        "endurance": 0,
+        "stamina": 0
+      },
+      "heritageVersion": 1,
+      "heritage": {
+        "bonuses": {},
+        "styles": [],
+        "guaranteedHaki": [],
+        "hakiBonus": 0,
+        "conquerorMultiplier": 1
+      },
+      "crew": [],
+      "group": null,
+      "groupSupport": 0,
+      "startAgeMonths": 288,
+      "ageMonths": 292,
+      "elapsedMonths": 4,
+      "alive": true,
+      "cause": null,
+      "chapter": 1,
+      "pending": {
+        "event": "saga",
+        "location": "Egghead Island",
+        "narrative": "The signal that outlived its speaker: A storage unit contains private material related to Kuma’s family alongside public scientific warnings.",
+        "startAge": 292,
+        "months": 0,
+        "picks": {
+          "sagaId": "egghead"
+        },
+        "phase": "event",
+        "effects": [],
+        "rolls": [
+          {
+            "id": "2:event",
+            "value": "saga",
+            "label": "A promise becomes a saga",
+            "chance": 2.9871977240398295,
+            "wheel": "What lies on the horizon?"
+          },
+          {
+            "id": "2:sagaId",
+            "value": "egghead",
+            "label": "The signal that outlived its speaker",
+            "chance": 58.33333333333333,
+            "wheel": "Which unfinished story finds you?"
+          }
+        ]
+      },
+      "rolls": [
+        {
+          "id": "0:startLocation",
+          "value": "island_egghead_island"
+        },
+        {
+          "id": "1:event",
+          "value": "saga"
+        },
+        {
+          "id": "1:sagaId",
+          "value": "egghead"
+        },
+        {
+          "id": "1:sagaChoice",
+          "value": "0"
+        },
+        {
+          "id": "2:event",
+          "value": "saga"
+        },
+        {
+          "id": "2:sagaId",
+          "value": "egghead"
+        }
+      ],
+      "log": [
+        {
+          "chapter": 1,
+          "event": "saga",
+          "sagaId": "egghead",
+          "location": "Egghead Island",
+          "narrative": "The signal that outlived its speaker: A technician asks you to carry a broadcast relay out of the siege. Nearby civilians need the same transport.",
+          "encounter": null,
+          "title": "The signal that outlived its speaker",
+          "startAge": 288,
+          "age": 292,
+          "months": 4,
+          "result": "Authenticate the relay’s recorded message",
+          "effects": [
+            "You distinguish a signed recording from a broker’s sensational additions.",
+            "Battle IQ practice +8.",
+            "Dream leads +1.",
+            "Next thread: Memory is not merchandise. Other chapters can happen before this promise returns."
+          ],
+          "rolls": [
+            {
+              "id": "1:event",
+              "value": "saga",
+              "label": "A promise becomes a saga",
+              "chance": 8.086253369272239,
+              "wheel": "What lies on the horizon?"
+            },
+            {
+              "id": "1:sagaId",
+              "value": "egghead",
+              "label": "The signal that outlived its speaker",
+              "chance": 71.42857142857143,
+              "wheel": "Which unfinished story finds you?"
+            },
+            {
+              "id": "1:sagaChoice",
+              "value": "0",
+              "label": "Authenticate the relay’s recorded message",
+              "chance": 45.31250000000001,
+              "wheel": "A relay snail in a sealed crate"
+            }
+          ],
+          "alive": true
+        }
+      ],
+      "injury": 0,
+      "captured": false,
+      "berries": 0,
+      "bounty": 0,
+      "inventory": [],
+      "danger": 0,
+      "wins": 0,
+      "losses": 0,
+      "kills": 0,
+      "discoveries": 0,
+      "recruits": 0,
+      "peakPower": 15,
+      "startLocationRollVersion": 1,
+      "startLocationResolved": true,
+      "sagaCutover": 0,
+      "legacyCutover": 0,
+      "legacyPending": false,
+      "simulationCutover": 0,
+      "story": {
+        "location": "Egghead Island",
+        "visited": [
+          "Egghead Island"
+        ],
+        "dreamProgress": 0,
+        "dreamClues": 1,
+        "milestones": [],
+        "relationships": {},
+        "dead": [],
+        "fruitAcquiredMonth": null,
+        "mentored": 0,
+        "legacy": 0,
+        "locationId": "island_egghead_island",
+        "sagas": {
+          "egghead": {
+            "node": "investigation",
+            "evidence": 0,
+            "trust": 0,
+            "history": [
+              {
+                "node": "opening",
+                "edge": "0",
+                "chapter": 1,
+                "location": "Egghead Island"
+              }
+            ]
+          }
+        }
+      },
+      "simulation": {
+        "version": 1,
+        "stability": 88,
+        "governmentControl": 78,
+        "activeLaws": [],
+        "dangerZones": {},
+        "destroyedLocations": [],
+        "executions": [],
+        "crewDeaths": [],
+        "crewDepartures": [],
+        "worldFlags": []
+      }
+    }
+  }
+]

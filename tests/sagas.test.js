@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {nextStep,roll,eras} from '../src/engine.js';
-import {createJourney,nextJourneyStep,applyJourneyRoll,eventPool,saveDocument,loadDocument} from '../src/journey.js';
+import {createJourney,nextJourneyStep,applyJourneyRoll,applyJourneyChoice,eventPool,saveDocument,loadDocument} from '../src/journey.js';
 import {SAGAS,SAGA_BY_ID,EFFECTS,sagaPool,sagaStatus,sagaOptions} from '../src/sagas.js';
 import {CANON,canonPool,shapeEvents} from '../src/story.js';
 import {WORLD_LOCATIONS} from '../src/world-map.js';
@@ -13,7 +13,7 @@ function origin(era='New World opening'){
  while(nextStep(h)){const s=nextStep(h),r=roll(h,()=>.35);if(chosen[s.id]!==undefined)r.value=chosen[s.id];h.push(r);}return h;
 }
 function start(s){const h=origin(eras[s.eras.at(-1)]),j=createJourney(h);const loc=WORLD_LOCATIONS.find(l=>s.places.includes(l.n))||WORLD_LOCATIONS.find(l=>l.n==='Foosha Village');applyJourneyRoll(j,loc.id);return {h,j};}
-function pick(j,key,value){assert.equal(nextJourneyStep(j)?.key,key);applyJourneyRoll(j,value);}
+function pick(j,key,value){while(nextJourneyStep(j)?.kind==='choice'&&nextJourneyStep(j)?.key!==key){const step=nextJourneyStep(j);applyJourneyChoice(j,step.options.find(o=>o.value==='balanced')?.value||step.options[0].value);}assert.equal(nextJourneyStep(j)?.key,key);applyJourneyRoll(j,value);}
 function paths(s,node='opening',prefix=[]){return s.nodes[node].edges.flatMap(e=>e.next?paths(s,e.next,[...prefix,e.id]):[[...prefix,e.id]]);}
 
 test('all authored graph nodes, actors, effects and locations resolve; every path terminates',()=>{
@@ -63,7 +63,7 @@ test('capture hands control to prison; refuges and archives affect future ordina
 test('historical saves preserve exact outcomes and probabilities before expansion cutover',()=>{
  const fixtures=JSON.parse(readFileSync(new URL('./fixtures/pre-saga.json',import.meta.url)));
  for(const {doc,expected} of fixtures){const j=loadDocument(doc).journey;assert.equal(j.sagaCutover,doc.journey.rolls.length);
- const canonical=structuredClone(j);delete canonical.sagaCutover;assert.deepEqual(JSON.parse(JSON.stringify(canonical)),expected);
+ const canonical=structuredClone(j);delete canonical.sagaCutover;delete canonical.developmentCutover;assert.deepEqual(JSON.parse(JSON.stringify(canonical)),expected);
  assert.deepEqual(loadDocument(saveDocument(doc.history,j)).journey,j);
  if(j.pending){while(j.pending){const s=nextJourneyStep(j);applyJourneyRoll(j,s.options[0].value);}}
  assert(eventPool(j).some(o=>o.value==='saga'));

@@ -1,3 +1,4 @@
+import {developmentEnabled,canImprove} from './development.js';
 import {CANON,PLACES,REGIONS,DREAMS} from './story-data.js';
 import {eras} from './engine.js';
 import {combatPower,levelOf,lifespanFor} from './journey-v1.js';
@@ -33,7 +34,7 @@ export function canonPool(j,event){
  const era=eras.indexOf(j.character.era),region=placeOf(j)[1],power=combatPower(j);
  const used=new Set(j.crew.filter(c=>c.canon).map(c=>c.name));
  return CANON.filter(c=>(!c.expansion||j.rolls.length-(j.legacyCutover||0)>=(j.sagaCutover||0))&&c.eras.includes(era)&&!j.story.dead.includes(c.id)&&!used.has(c.name)&&!(aliases[c.id]||[]).some(n=>used.has(n))&&c.regions.includes(region)).filter(c=>{
- if(event==='mentor')return c.mentor.length>0||c.kind==='mentor';
+ if(event==='mentor'){if(developmentEnabled(j))return c.mentor.some(k=>Object.keys(j.skills).some(key=>canImprove(j,key)&&(key===k||(k==='weapon'&&key.startsWith('weaponMastery_'))||(k==='haki'&&key.startsWith('haki_')))));return c.mentor.length>0||c.kind==='mentor';}
  if(c.crew===j.group||c.crew.split(' / ')[0]===j.group)return false;
  return event==='marines'?c.kind==='marine':event==='hunters'?c.kind==='hunter':event==='revolutionaries'?c.kind==='revolutionary':event==='duel'?['pirate','marine','hunter'].includes(c.kind):c.kind==='pirate';
  }).map(c=>{

@@ -1,3 +1,4 @@
+import {voyageEnabled} from './voyage.js';
 import eastBlue from './world/east-blue.js';
 import southBlue from './world/south-blue.js';
 import westBlue from './world/west-blue.js';
@@ -22,6 +23,8 @@ export const WORLD_LOCATION_BY_NAME=Object.fromEntries(WORLD_LOCATIONS.map(x=>[x
 export const WORLD_REGION_BY_ID=Object.fromEntries(WORLD_REGIONS.map(x=>[x.id,x]));
 
 const aliases={
+ 'lodestar':'island_loadestar_island',
+ 'lodestar island':'island_loadestar_island',
  'alabasta':'island_alabasta_kingdom',
  'dressrosa':'island_dressrosa_kingdom',
  'elbaf':'island_elbaph',
@@ -137,6 +140,10 @@ export function startingLocationPool(jOrCharacter){
  });
 }
 export function worldTravelPool(j){
+ if(voyageEnabled(j))return onwardTravelPool(j);
+ return legacyTravelPool(j);
+}
+function legacyTravelPool(j){
  const here=syncWorldLocation(j),destroyed=new Set(j.simulation?.destroyedLocations||[]);
  const authored=authoredRoutesFrom(here).filter(r=>!destroyed.has(r.to.n));
  const make=(to,route,distance)=>({
@@ -161,4 +168,35 @@ export function worldTravelPool(j){
 export function worldMapSummary(j){
  const loc=worldLocationOf(j),routes=authoredRoutesFrom(loc);
  return {location:loc,region:regionLabel(loc.r),routes:routes.length,nearby:nearbyLocations(loc,{limit:5}).map(x=>x.loc),mapDanger:mapDangerFor(j,loc)};
+}
+
+// Missing links are game itineraries, not claims of a complete canon magnetic map.
+const NEW_WORLD_COURSE=['island_punk_hazard','island_dressrosa_kingdom','island_whole_cake_island','island_wano_country','island_egghead_island','island_elbaph','island_loadestar_island'];
+function onwardTravelPool(j){
+ const here=syncWorldLocation(j),destroyed=new Set(j.simulation?.destroyedLocations||[]),rows=new Map();
+ const add=(id,weight,note)=>{const to=WORLD_LOCATION_BY_ID[id];if(!to||id===here.id||destroyed.has(to.n))return;rows.set(id,{value:to.n,label:`${id==='island_loadestar_island'?'Lodestar Island':to.n} · ${regionLabel(to.r)}`,weight,note});};
+ const local=()=>nearbyLocations(here,{limit:12}).filter(x=>x.loc.id!=='island_loadestar_island'&&x.loc.id!=='island_zou').forEach(({loc,distance})=>add(loc.id,Math.max(.2,8/(1+distance/500))*(j.story.visited.includes(loc.n)?.28:1),'Regional sailing · a nearby port in the same sea.'));
+ if(BLUE_REGIONS.has(here.r)){
+  if(here.t==='sea_gate')add('island_reverse_mountain',100,'Ride the ascending canal into Reverse Mountain; the currents do not carry you into another Blue.');
+  else{local();add(`island_reverse_mountain_entrance_${here.r}`,35,'Onward course · approach Reverse Mountain through your own Blue’s entrance.');}
+ }else if(here.id==='island_reverse_mountain')add('settlement_twins_cape',100,'Descend the Grand Line current to Twins Cape and enter Paradise.');
+ else if(here.id==='island_sabaody_archipelago')add('island_fish_man_island',100,'Arrange ship coating at Sabaody, then descend beneath the Red Line to Fish-Man Island. Coating and passage are included in this travel chapter.');
+ else if(here.id==='island_fish_man_island'){
+  for(const id of ['island_raijin_island','island_risky_red_island','island_mystoria_island'])add(id,30,'Ascend into the New World; choose among the three Log Pose headings.');
+ }else if(here.r==='paradise'){
+  for(const r of authoredRoutesFrom(here).filter(r=>!r.id.endsWith('_summary')&&r.to.r==='paradise'))add(r.to.id,20*(j.story.visited.includes(r.to.n)?.28:1),`${r.u?.replaceAll('_',' ')||'charted route'} · ${r.d||'?'} travel days · onward through Paradise toward Sabaody.`);
+  // Side destinations without a mapped exit reconnect locally, never jump across the Red Line.
+  if(!rows.size){const exits=WORLD_LOCATIONS.filter(x=>x.r==='paradise'&&authoredRoutesFrom(x).length&&x.id!==here.id&&!destroyed.has(x.n)).sort((a,b)=>dist(here,a)-dist(here,b));for(const to of exits.slice(0,3))add(to.id,15,'Local return passage to a charted Paradise route.');}
+ }else if(here.r==='new_world'){
+  local();
+  const index=NEW_WORLD_COURSE.indexOf(here.id);
+  const visited=new Set(j.story.visited.filter(n=>resolveWorldLocation(n)?.r==='new_world'));
+  // Lodestar is the end of the regular voyage, not a random early nearby-island reward.
+  if(index>=0&&index<NEW_WORLD_COURSE.length-1){const next=NEW_WORLD_COURSE[index+1];if(next!=='island_loadestar_island'||visited.size>=5)add(next,60,'Onward New World course · a game-charted itinerary toward Lodestar.');}
+  else if(index<0)add('island_punk_hazard',40,'Chart an onward New World itinerary, beginning with Punk Hazard.');
+  if(here.id==='island_elbaph'&&visited.size<5)for(const id of NEW_WORLD_COURSE.slice(0,-2))if(!visited.has(WORLD_LOCATION_BY_ID[id].n))add(id,25,'Explore another New World island before the final course to Lodestar.');
+ }else{
+  for(const o of legacyTravelPool(j))rows.set(o.value,o);
+ }
+ return [...rows.values()];
 }

@@ -19,3 +19,26 @@ test('giant family and height conditions',()=>{const a=values(create({race:'Gian
 test('save validation rejects changed, out-of-order and malicious outcomes',()=>{const h=create();assert.throws(()=>validateHistory([{...h[0],value:'<script>alert(1)</script>'}]));assert.throws(()=>validateHistory(h.slice(1)));const forged=h.map(r=>({...r,chance:999,note:'forged'}));assert.deepEqual(validateHistory(forged),h);});
 test('undo returns exact previous wheel, partial save remains resumable',()=>{const h=create();const last=h.pop();assert.equal(nextStep(h).id,last.id);assert.deepEqual(validateHistory(h),h);const doc=characterDocument(h);assert.equal(doc.complete,false);assert.deepEqual(doc.journey.events,[]);});
 test('sampler distribution follows weights',()=>{const r=seeded(444);const p=[{value:'a',weight:95},{value:'b',weight:5}];let b=0;for(let i=0;i<100000;i++)if(weightedPick(p,r).value==='b')b++;assert(Math.abs(b/100000-.05)<.003);});
+
+test('sword families guarantee primary sword styles with the matching distinct weapons',()=>{
+ for(const family of ['Shimotsuki','Kozuki'])for(const style of ['One-sword style','Two-sword style','Three-sword style']){
+ const h=create({race:'Human',bloodline:'Yes',family,fightingStyle:style,crewMode:'Go solo'}),index=h.findIndex(r=>r.id==='fightingStyle'),s=nextStep(h.slice(0,index)),a=values(h);
+ assert(s.options.every(o=>o.value.includes('sword')));assert.equal(h[index].styleRules,1);
+ const count={'One-sword style':1,'Two-sword style':2,'Three-sword style':3}[style];
+ for(let i=1;i<=count;i++){assert(a[`weapon_${i}`]);assert(a[`weaponMastery_${i}`]);}assert(!a[`weapon_${count+1}`]);
+ const forged=structuredClone(h);forged[index].value='Brawling';assert.throws(()=>validateHistory(forged));
+ }
+});
+test('family affinities give exactly sixty percent while preserving alternative styles',()=>{
+ for(const [family,race,style] of [['Monkey','Human','Brawling'],['Jaguar','Giant','Brawling'],['Vinsmoke','Human','Black Leg-inspired kicks']]){
+ const h=create({race,bloodline:'Yes',family}),index=h.findIndex(r=>r.id==='fightingStyle'),pool=nextStep(h.slice(0,index)).options,total=pool.reduce((n,o)=>n+o.weight,0);
+ assert(Math.abs(pool.find(o=>o.value===style).weight/total*100-60)<1e-10);assert(pool.every(o=>o.weight>0));assert.equal(pool.length,11);
+ }
+});
+test('old non-sword family results keep their original probability and partial origins get new style rules',()=>{
+ const h=create({race:'Human',bloodline:'Yes',family:'Shimotsuki'}),index=h.findIndex(r=>r.id==='fightingStyle'),prefix=h.slice(0,index),s=nextStep(prefix,{legacyStyles:true}),o=s.options.find(o=>o.value==='Brawling');
+ const old=[...prefix,{id:s.id,label:s.label,group:s.group,value:o.value,note:o.note||'',chance:o.weight/s.options.reduce((n,x)=>n+x.weight,0)*100}];
+ assert.deepEqual(validateHistory(old),old);assert.equal(nextStep(old).id,'fightingMastery');
+ assert(nextStep(validateHistory(prefix)).options.every(o=>o.value.includes('sword')));
+ const bad=structuredClone(old);bad.at(-1).styleRules=2;assert.throws(()=>validateHistory(bad),/Unsupported/);
+});

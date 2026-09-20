@@ -1,4 +1,4 @@
-import {options,races,families,dFamilies,mastery,hakiMastery,fruitMastery,stats,fruits,swords,crewCatalog,characters,firstNames,surnames,dreams,heritageProfile} from './data.js';
+import {options,races,families,dFamilies,mastery,hakiMastery,fruitMastery,stats,fruits,swords,crewCatalog,characters,firstNames,surnames,dreams,heritageProfile,FAMILY_TRAITS} from './data.js';
 export const VERSION = 1;
 export const eras = ['Roger’s final voyage','Early Great Pirate Era','Summit War opening','New World opening'];
 const yesNo = n => {const p=Math.max(.001,Math.min(99.999,n));return options([['Yes',p],['No',100-p]]);};
@@ -17,7 +17,7 @@ export function availableCharacters(a) {
  const used=Object.entries(a).filter(([k])=>/^member_\d+_canon$/.test(k)).map(([,v])=>v);
  return options(characters.filter(([name,era,f])=>era.includes(eras.indexOf(a.era))&&f===a.faction&&!used.includes(name)).map(([name,,,w])=>[name,w]));
 }
-export function nextStep(history) {
+export function nextStep(history,{legacyStyles=false}={}) {
  const a=values(history); const pending=(id,label,group,pool,note)=>a[id]===undefined?step(id,label,group,pool,note):null;
  let s;
  if(s=pending('era','When does your story begin?','Origins',options(eras.map((e,i)=>[e,[10,15,25,50][i]])),'Era sets the available crews and canon recruits. All journeys diverge from canon at this starting point.'))return s;
@@ -63,7 +63,13 @@ export function nextStep(history) {
  if(a.race==='Mink')styles.push(...options([['Electro martial arts',20]]));
  const heritageStyles=heritageProfile(a).styles;
  styles=styles.map(o=>heritageStyles.includes(o.value)?{...o,weight:o.weight*5,note:'Your heritage makes this style especially natural; it is also retained as a secondary style if another style wins.'}:o);
- if(s=pending('fightingStyle','How do you fight?','Combat',styles,'Your primary style is rolled normally. Heritage styles are strongly favored and remain available as secondary styles even if another style wins.'))return s;
+ let styleNote='Your primary style is rolled normally. Heritage styles are strongly favored and remain available as secondary styles even if another style wins.';
+ if(!legacyStyles){
+ const family=FAMILY_TRAITS[a.family];
+ if(family?.primaryStyles){styles=styles.filter(o=>family.primaryStyles.includes(o.value));styleNote=`${a.family} sword heritage guarantees a sword-based primary style. Your family’s signature style remains favored; each sword receives its own weapon and mastery rolls.`;}
+ else if(family?.primaryAffinity){const {style,chance}=family.primaryAffinity,others=styles.filter(o=>o.value!==style).reduce((sum,o)=>sum+o.weight,0);styles=styles.map(o=>({...o,weight:o.value===style?chance:o.weight/others*(100-chance)}));styleNote=`${a.family} family affinity: ${chance}% ${style}; the remaining ${100-chance}% allows other paths. These are game inheritance rules, not guarantees of canon ability.`;}
+ }
+ if(s=pending('fightingStyle','How do you fight?','Combat',styles,styleNote))return {...s,...(!legacyStyles?{styleRules:1}:{})};
  if(s=pending('fightingMastery','Fighting mastery','Combat',mastery))return s;
  const weaponCount={'One-sword style':1,'Two-sword style':2,'Three-sword style':3,Sniper:1,'Staff fighting':1,'Spear fighting':1,'Axe fighting':1}[a.fightingStyle]||0;
  const otherWeapons={Sniper:options([['Flintlock pistol',25],['Long rifle',45],['Twin pistols',15],['Slingshot',14],['Kabuto',1]]),'Staff fighting':options([['Oak staff',65],['Iron staff',34],['Clima-Tact',1]]),'Spear fighting':options([['Spear',65],['Trident',30],['Naginata',4],['Murakumogiri',1]]),'Axe fighting':options([['Boarding axe',70],['Great axe',30]])};
@@ -105,18 +111,19 @@ export function nextStep(history) {
  return null;
 }
 export function fullName(a) {return a.name?`${a.family&&a.family!=='Original ancestral clan'?a.family:a.surname||''}${a.willD==='Yes'?' D.':''} ${a.name}`.trim():'Unknown adventurer';}
-export function roll(history,random=Math.random) {const s=nextStep(history);if(!s)return null;const o=weightedPick(s.options,random);return {id:s.id,label:s.label,group:s.group,value:o.value,note:o.note||'',chance:probability(s.options,o.value)};}
+export function roll(history,random=Math.random) {const s=nextStep(history);if(!s)return null;const o=weightedPick(s.options,random);return {id:s.id,label:s.label,group:s.group,value:o.value,note:o.note||'',chance:probability(s.options,o.value),...(s.styleRules?{styleRules:s.styleRules}:{})};}
 export function validateHistory(input) {
  if(!Array.isArray(input)||input.length>200)throw new Error('Invalid character history');
  const clean=[];
  for(const item of input) {
- const s=nextStep(clean);let o=s?.options.find(o=>o.value===item?.value);
+ if(item?.styleRules!==undefined&&(item.id!=='fightingStyle'||item.styleRules!==1))throw new Error('Unsupported fighting-style rules.');
+ const s=nextStep(clean,{legacyStyles:item?.id==='fightingStyle'&&item.styleRules===undefined});let o=s?.options.find(o=>o.value===item?.value);
  if(s?.id==='haki'&&item?.value==='No'&&!o&&heritageProfile(values(clean)).guaranteedHaki.length){
   clean.push({id:s.id,label:s.label,group:s.group,value:'No',note:'Legacy pre-heritage result preserved; inherited Haki is applied when the journey begins.',chance:Number.isFinite(item.chance)?item.chance:0});
   continue;
  }
  if(!s||s.id!==item?.id||!o)throw new Error('This save does not match the current character rules.');
- clean.push({id:s.id,label:s.label,group:s.group,value:o.value,note:o.note||'',chance:probability(s.options,o.value)});
+ clean.push({id:s.id,label:s.label,group:s.group,value:o.value,note:o.note||'',chance:probability(s.options,o.value),...(s.styleRules?{styleRules:s.styleRules}:{})});
  }
  return clean;
 }

@@ -45,15 +45,15 @@ export const RACE_TRAITS={
  Buccaneer:{bonuses:{strength:2,durability:2,endurance:1}},
 };
 export const FAMILY_TRAITS={
- Monkey:{bonuses:{battleIQ:1,endurance:1,stamina:1},guaranteedHaki:['haki_observation'],hakiBonus:30},
+ Monkey:{primaryAffinity:{style:'Brawling',chance:60},bonuses:{battleIQ:1,endurance:1,stamina:1},guaranteedHaki:['haki_observation'],hakiBonus:30},
  Portgas:{bonuses:{endurance:1,stamina:1},hakiBonus:30},
  Gol:{bonuses:{fightingMastery:1,battleIQ:1,endurance:1},guaranteedHaki:['haki_conqueror'],hakiBonus:60,conquerorMultiplier:12},
  Trafalgar:{bonuses:{battleIQ:2,endurance:1},hakiBonus:10},
- Jaguar:{bonuses:{strength:1,durability:1},style:'Brawling',hakiBonus:15},
+ Jaguar:{primaryAffinity:{style:'Brawling',chance:60},bonuses:{strength:1,durability:1},style:'Brawling',hakiBonus:15},
  Nefertari:{bonuses:{battleIQ:1,stamina:1},hakiBonus:15},
- Vinsmoke:{bonuses:{strength:1,durability:1,speed:1},style:'Black Leg-inspired kicks'},
- Shimotsuki:{bonuses:{fightingMastery:1,speed:1},style:'One-sword style',hakiBonus:15},
- Kozuki:{bonuses:{fightingMastery:1,durability:1},style:'Two-sword style',hakiBonus:20},
+ Vinsmoke:{primaryAffinity:{style:'Black Leg-inspired kicks',chance:60},bonuses:{strength:1,durability:1,speed:1},style:'Black Leg-inspired kicks'},
+ Shimotsuki:{primaryStyles:['One-sword style','Two-sword style','Three-sword style'],bonuses:{fightingMastery:1,speed:1},style:'One-sword style',hakiBonus:15},
+ Kozuki:{primaryStyles:['One-sword style','Two-sword style','Three-sword style'],bonuses:{fightingMastery:1,durability:1},style:'Two-sword style',hakiBonus:20},
  Donquixote:{bonuses:{battleIQ:1,fightingMastery:1},guaranteedHaki:['haki_armament'],hakiBonus:35},
  Charlotte:{bonuses:{durability:1,stamina:1},hakiBonus:30,conquerorMultiplier:2.5},
 };

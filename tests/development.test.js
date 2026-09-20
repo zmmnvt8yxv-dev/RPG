@@ -93,7 +93,7 @@ test('crew specialties affect their advertised wheels and disappear when their o
 });
 
 test('pre-intent saves replay exactly and finish an already-started saga without inserting a choice',()=>{
- for(const {doc,expected} of JSON.parse(readFileSync(new URL('./fixtures/pre-intent.json',import.meta.url)))){const j=loadDocument(doc).journey;assert.equal(j.developmentCutover,doc.journey.rolls.length);const copy=structuredClone(j);delete copy.developmentCutover;assert.deepEqual(JSON.parse(JSON.stringify(copy)),expected);assert.deepEqual(loadDocument(saveDocument(doc.history,j)).journey,j);
+ for(const {doc,expected} of JSON.parse(readFileSync(new URL('./fixtures/pre-intent.json',import.meta.url)))){const j=loadDocument(doc).journey;assert.equal(j.developmentCutover,doc.journey.rolls.length);const copy=structuredClone(j);delete copy.developmentCutover;delete copy.territoryCutover;assert.deepEqual(JSON.parse(JSON.stringify(copy)),expected);assert.deepEqual(loadDocument(saveDocument(doc.history,j)).journey,j);
  if(j.pending){assert.equal(nextJourneyStep(j).key,'sagaChoice');applyJourneyRoll(j,'0');}
  assert(developmentEnabled(j));pick(j,'event','saga');pick(j,'sagaId','blackchart');assert.equal(nextJourneyStep(j).kind,'choice');
  }
@@ -127,4 +127,29 @@ test('a newly awakened skill reopens useful training after all previous stats ar
 
 test('territory defenses reduce actual local risk, not only the displayed territory values',()=>{
  const {j}=start('Wano Country'),before=effectiveDanger(j);j.story.territories={'Wano Country':{stability:100,defenses:100,prosperity:100}};assert(effectiveDanger(j)<before);assert(effectiveDanger(j)>=0);
+});
+
+test('enemy government territory restricts pirates while neutral, allied and liberated areas remain open',()=>{
+ const {j}=start('Marineford');
+ const ids=()=>eventPool(j).map(o=>o.value);
+ assert(ids().includes('travel'));assert(ids().includes('marines'));assert(ids().includes('treasure'));
+ for(const id of ['training','trade','celebration','quiet','timeskip','recovery','recruit'])assert(!ids().includes(id),id);
+ assert.match(nextJourneyStep(j).note,/Enemy territory/);
+ j.story.refuges=['Marineford'];assert(ids().includes('recovery'));assert(!ids().includes('trade'));
+ j.story.territories={Marineford:{stability:55,defenses:35,prosperity:35}};assert(ids().includes('training'));
+ delete j.story.territories;j.character.faction='Marine';assert(ids().includes('training'));
+ j.character.faction='Pirate';j.captured=true;assert.deepEqual(ids(),['prison','prisonBreak']);
+ assert(eventPool(start().j).some(o=>o.value==='training'));
+});
+
+test('territory restrictions preserve old pending events and their probabilities across replay',()=>{
+ const {h,j}=start('Marineford');j.territoryCutover=1000;
+ pick(j,'event','training');const doc=saveDocument(h,j);delete doc.journey.territoryCutover;
+ const loaded=loadDocument(doc).journey;assert.deepEqual(loaded.pending,j.pending);
+ assert.deepEqual(nextJourneyStep(loaded).options,nextJourneyStep(j).options);
+ const key=nextJourneyStep(loaded).options[0].value;
+ pick(loaded,'target',key);pick(loaded,'trainingInstinct','Steady discipline');pick(loaded,'trainingResult','steady');
+ assert(!eventPool(loaded).some(o=>o.value==='training'));
+ assert.deepEqual(loadDocument(saveDocument(h,loaded)).journey,loaded);
+ const bad=saveDocument(h,loaded);bad.journey.territoryCutover=-1;assert.throws(()=>loadDocument(bad),/territory cutover/);
 });

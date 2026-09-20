@@ -8,13 +8,13 @@ A mobile-friendly, static One Piece character creator and fate-driven life simul
 npm start
 ```
 
-Open http://localhost:8000. ES modules require an HTTP server (do not double-click index.html).
+Requires Node.js. The development server binds to localhost; use `RPG_PORT=8766 npm start` for another port. Open http://localhost:8000. ES modules require an HTTP server (do not double-click index.html).
 
 ```sh
 npm test
 ```
 
-The Node test suite checks 3,000 generated origins and 1,500 complete lifetimes across legacy and current rules, weighted sampling, conditional branches, unique weapons/recruits, Haki levels, era/faction filtering, transparent probability shifts, progression, one-roll combat resolution, four-month timing, time skips, captivity, race-based mortality, save migration and terminal death. Browser checks cover desktop/mobile rendering, embarkation, probability display, persistence, export/import and the death screen.
+The Node test suite also checks capped-stat filtering, player-choice replay, techniques, campaigns, crew dreams and territory consequences. It checks 3,000 generated origins and 1,500 complete lifetimes across legacy and current rules, weighted sampling, conditional branches, unique weapons/recruits, Haki levels, era/faction filtering, transparent probability shifts, progression, one-roll combat resolution, four-month timing, time skips, captivity, race-based mortality, save migration and terminal death. Browser checks cover desktop/mobile rendering, embarkation, probability display, persistence, export/import and the death screen.
 
 ## Character creation
 
@@ -45,15 +45,28 @@ This is an **alternate-timeline fan game**. Canon ownership of a named fruit or 
 
 Original companions are **procedurally generated from authored pools**, not live AI model output. A real AI backend can be added later without putting a secret key in browser code. The journey uses a curated cast of 71 canon characters with crew/unit affiliations, fighting styles and authored encounter premises. Eligibility follows the starting era and current sea; this is not a complete simulation of canon chronology or canon-character aging. Named journey recruits remain original characters. Existing-group support is an abstract modifier rather than a simulated roster of the entire canon crew.
 
+## Player intent, mastery, and a world you can change
+
+The next expansion adds **12 advanced techniques**, **10 crew-role stories with 30 milestones**, **6 canon-changing campaigns**, and **territory stewardship**. The complete [development and alternate-history guide](docs/DEVELOPMENT_GUIDE.md) documents every prerequisite, intent, consequence and source anchor.
+
+- Choose whether to press an attack, protect your people, or withdraw; the combat wheel resolves that goal. Saga intentions similarly favor investigation, protection or self-interest. Choices are saved immediately, use no game time and cannot be undone.
+- **No stat regression.** Capped stats disappear from practice targets. When no eligible target remains, training events disappear. Useless manuals, quiet practice, prison training and pure lessons are excluded. Mixed story rewards remain meaningful; a capped incidental lesson becomes legacy. The development journal shows mastered stats in gray.
+- Advanced Haki applications, fruit control, signature techniques, blade discipline, footwork and command require existing skills. Learning a discipline is uncertain; failed attempts help future attempts. Each discipline can be learned once.
+- Choose a companion to support, heal or reconcile with. Their personal milestones unlock navigator, doctor, cook, shipwright, lookout, helmsman, fighter, musician, scholar or quartermaster specialties. Benefits end when the companion leaves or dies.
+- Attempt to **save Ace**, extract Vegapunk alive, free Alabasta or Dressrosa, overthrow Wano’s occupation, or claim an Emperor’s territory. Intelligence and coalition chapters precede the decisive operation. Death, capture and permanent failure are real possibilities; saved and killed characters remain part of the alternate-world record.
+- A liberated territory needs governance. Defenses affect danger and raid risk; prosperity supports development. Tribute enriches you but erodes stability. At zero stability, the island rejects your stewardship.
+
+The original 18 sagas and existing origin, geography and lifetime systems remain integrated. New rules use an explicit replay boundary: older saved chapters finish under their original rules before adopting player intent and the new progression behavior. Run `npm run docs:development` to regenerate the detailed guide.
+
 ## Branching canon sagas
 
 The horizon wheel now opens **18 connected sagas: 72 authored scenes and 216 outcome edges**, supported by 14 additional canon encounter characters. Read the complete [saga atlas and branch trees](docs/SAGA_ATLAS.md), or expand the same atlas in the live story compass. Sources appear beside canon anchors; all player missions and endings are original alternate-timeline fiction.
 
 Stories include Nami’s tribute ledger, Baratie’s starving raiders, Ohara’s scattered books, Flevance’s medical records, Alabasta’s conspiracy, Shandora’s bell, Water 7’s evacuation, Sabaody’s auctions, Marineford’s wounded, Fish-Man Island’s reconciliation, Dressrosa’s missing people, Whole Cake’s coerced contracts, Wano’s polluted water, Egghead’s broadcast, Elbaph’s library, and a Roger-era pilot’s journal. Two original voyages bring connected stories to ports without a canon saga.
 
-Fate rolls **event → saga → response/consequence**. A response follows an explicit edge to a different scene or a permanent ending. Each scene occupies one four-month chapter, with ordinary events between scenes; canon incidents are inspirations for these compressed alternate missions, not a day-by-day retelling. You can leave an island and return to its unfinished story. Named sites use exact QGIS names and regions; dead required cast members or destroyed sites can make a thread unavailable. Closed threads remain visible with the reason.
+The flow is **event wheel → saga wheel → player intent → consequence wheel**. A response follows an explicit edge to a different scene or a permanent ending. Each scene occupies one four-month chapter, with ordinary events between scenes; canon incidents are inspirations for these compressed alternate missions, not a day-by-day retelling. You can leave an island and return to its unfinished story. Named sites use exact QGIS names and regions; dead required cast members or destroyed sites can make a thread unavailable. Closed threads remain visible with the reason.
 
-Evidence, trust, judgment, existing relationships, money, injuries, allegiance, and accumulated government heat shape the response weights. Outcomes change practice, leads, loyalty, reputation, money, injuries, captivity, and outlaw bounty. Refuge endings favor local recovery/rescue/homecoming; archives favor reflection and dream research. Reputation changes do not falsely increment personal meeting counters. Endings cannot be replayed for rewards. No saga grants a canon power, instant cure, or automatic victory over a major antagonist.
+Evidence, trust, judgment, existing relationships, money, injuries, allegiance, and accumulated government heat shape the response weights. Outcomes change practice, leads, loyalty, reputation, money, injuries, captivity, and outlaw bounty. Refuge endings favor local recovery/rescue/homecoming; archives favor reflection and dream research. Reputation changes do not falsely increment personal meeting counters. Endings cannot be replayed for rewards. No saga grants a canon power or an instant cure. Separate three-stage campaigns can change major canon outcomes through preparation and a risky final operation.
 
 Existing save documents retain schema 3 and rules version 2. `sagaCutover` marks the number of pre-expansion modern rolls: old outcomes, probabilities, and cast pools replay under their original eligibility before new sagas/cast become available. Exports store rolls and this boundary; saga state, evidence, bonds, and endings are reconstructed. Legacy version-1 pending events still finish through the frozen legacy engine.
 
@@ -61,9 +74,9 @@ Existing save documents retain schema 3 and rules version 2. `sagaCutover` marks
 
 ## The journey
 
-Press **Begin your journey** on a completed origin. Before Chapter 1, a zero-time **starting-location wheel** chooses a real QGIS location; faction, family, crew affiliation and age shape its weights. There are no tactical choices: the user only spins and advances to the next wheel. Character creation retains undo and quick generation; the journey has no undo or reroll controls. On the web, **Spacebar** is the quick key for the primary Spin / Continue button when focus is not inside another interactive control.
+Press **Begin your journey** on a completed origin. Before Chapter 1, a zero-time **starting-location wheel** chooses a real QGIS location; faction, family, crew affiliation and age shape its weights. The player chooses intent in combat, sagas, advanced training, crew stories, canon campaigns and territory stewardship; wheels resolve the consequences. Character creation retains undo and quick generation; the journey has no undo or reroll controls. On the web, **Spacebar** is the quick key for the primary Spin / Continue button when focus is not inside another interactive control.
 
-The main wheel contains 33 event categories, conditionally filtered: training, quiet months, world events, pirates, Marines, bounty hunters, sparring, Devil Fruit discovery, Haki awakening, treasure, weapon caches, recruitment, betrayal, storms, illness, rescue, islands, duels, trade, mentors, time skips, stored-fruit decisions, celebrations, ships in distress, dream milestones, travel, recovery, reflection, teaching, homecoming, leadership and revolutionary contacts. Captivity substitutes two prison/escape events until release. The new saga category appears only when a story is eligible at your current location.
+The main wheel contains 37 event categories, conditionally filtered: training, quiet months, world events, pirates, Marines, bounty hunters, sparring, Devil Fruit discovery, Haki awakening, treasure, weapon caches, recruitment, betrayal, storms, illness, rescue, islands, duels, trade, mentors, time skips, stored-fruit decisions, celebrations, ships in distress, dream milestones, travel, recovery, reflection, teaching, homecoming, leadership and revolutionary contacts. Captivity substitutes two prison/escape events until release. Sagas and canon campaigns require eligible stories; crew, technique and territory events appear only when their prerequisites are met.
 
 - **Clock:** one resolved event advances four months. Opponent, instinct and reward wheels within it add no extra time. Time skips explicitly replace four months with 1, 2, 5 or 10 years. An event near the maximum lifespan is capped at the remaining months.
 - **Instincts:** fate may roll an urge to flee, aggression, protectiveness or tactical awareness. For example, a 33% escape chance becomes 40%: this is **+7 percentage points**, with other outcomes reduced proportionally. Base and adjusted probabilities are visible. Steady resolve makes no change. Training has a similar automatic inspiration/distraction wheel. Age, injuries, companions and opponent strength also weight the impulse wheel.
@@ -124,6 +137,8 @@ The app works without network services after assets are loaded. Google Fonts is 
 - `src/engine.js` — pure deterministic branching rules and save validation.
 - `src/journey-data.js` — event catalogs, instincts, growth tracks and longevity settings.
 - `src/journey.js` — current journey state machine, progression, aging and versioned save replay.
+- `src/development.js` / `src/development-view.js` — progression rules, intent definitions and the development journal.
+- `src/techniques.js` / `src/crew-stories.js` / `src/crossroads.js` — advanced applications, companion dreams, alternate history and territory stewardship.
 - `src/saga-data.js` / `src/sagas.js` / `src/saga-view.js` — authored saga graphs, deterministic consequences, eligibility and the in-game branch atlas.
 - `src/story-data.js` / `src/story.js` — canon cast, locations, dream milestones, priorities and relationship memory.
 - `src/world/` / `src/world-map.js` — QGIS-derived locations, routes, regions, danger zones and browser travel-graph adapter.

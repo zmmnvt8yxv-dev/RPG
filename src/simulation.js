@@ -1,3 +1,5 @@
+import {hasCrewPerk} from './crew-stories.js';
+import {developmentEnabled} from './development.js';
 import {CANON,PLACES} from './story-data.js';
 import {eras} from './engine.js';
 import {WORLD_LOCATIONS,worldLocationOf,mapDangerFor,legacyRegionIndex} from './world-map.js';
@@ -101,6 +103,8 @@ export function effectiveDanger(j,context='general'){
   base+=kind==='government'?law.governmentDanger:law.outlawDanger;
  }
  base+=mapDangerFor(j);
+ const territory=developmentEnabled(j)&&j.story.territories?.[j.story.location];
+ if(territory)base-=Math.min(1.5,territory.defenses/100+territory.stability/200);
  if(context==='combat')base+=.15;
  if(context==='travel')base+=tier*.1;
  return clamp(round1(base),0,5);
@@ -108,7 +112,8 @@ export function effectiveDanger(j,context='general'){
 export function dangerExplanation(j){
  const s=ensureSimulation(j),kind=factionKind(j.character?.faction);
  const labels={government:'Government-aligned',pirate:'Pirate',revolutionary:'Revolutionary',hunter:'Bounty hunter',civilian:'Independent'};
- return `${labels[kind]} risk at ${j.story?.location||'the current location'}: ${effectiveDanger(j)}/5 · world stability ${Math.round(s.stability)}/100.`;
+ const territory=developmentEnabled(j)&&j.story.territories?.[j.story.location];
+ return `${territory?'Local defenses and stable stewardship reduce danger. ':''}${labels[kind]} risk at ${j.story?.location||'the current location'}: ${effectiveDanger(j)}/5 · world stability ${Math.round(s.stability)}/100.`;
 }
 export function routeDangerScore(route={},faction=''){
  const raw=Number(route.danger_score??route.danger_level??0);
@@ -167,7 +172,7 @@ export function applyWorldEvent(j,value,effects=[]){
  }
  else if(value==='An island is eradicated'){
   shift(-20,5);const target=chooseErasedLocation(j,seed);
-  if(target){s.destroyedLocations.push(target);s.dangerZones[target]=5;effects.push(`${target} is erased from navigable routes in this alternate world.`);}
+  if(target){s.destroyedLocations.push(target);s.dangerZones[target]=5;if(developmentEnabled(j)&&j.story.territories?.[target]){delete j.story.territories[target];effects.push(`Your stewardship of ${target} ends with its destruction.`);}effects.push(`${target} is erased from navigable routes in this alternate world.`);}
  }
  else if(value==='A new World Government law'){
   shift(-4,5);const law=addLaw(s,seed);if(law)effects.push(`New law: ${law.label}.`);
@@ -198,23 +203,25 @@ export function crewTurnWeights(j,member,months=4){
  const danger=effectiveDanger(j),loyalty=clamp(Number(member.loyalty??55),0,100),duration=clamp(months/4,1,8);
  return [
   {value:'advance',label:'strengthens during the chapter',weight:28+duration*1.5},
-  {value:'bond',label:'grows more loyal to the crew',weight:22+loyalty*.08},
+  {value:'bond',label:'grows more loyal to the crew',weight:(22+loyalty*.08)*(hasCrewPerk(j,'Musician')?1.2:1)},
   {value:'duty',label:'handles their role without drama',weight:24},
   {value:'ambition',label:'pursues a personal goal and improves',weight:12+duration},
   {value:'friction',label:'clashes with the crew',weight:7+(100-loyalty)*.08},
   {value:'leave',label:'chooses to leave the crew',weight:(2.5+(100-loyalty)*.08)*(1+duration*.08)},
   {value:'injured',label:'is hurt away from the spotlight',weight:(2+danger*.55)*(1+duration*.05)},
   {value:'death',label:'dies during the chapter',weight:(.7+danger*.28)*(1+duration*.08)},
- ];
+ ].filter(o=>!developmentEnabled(j)||!(['advance','ambition'].includes(o.value)&&member.power>=100)&&!(o.value==='bond'&&loyalty>=100&&!member.injury));
 }
 export function resolveCrewTurns(j,months=4,event=''){
  const s=ensureSimulation(j),effects=[],survivors=[];
  for(const member of [...j.crew]){
+  if(developmentEnabled(j)&&j.pending?.event==='crewStory'&&j.pending.picks.crewFocus===member.name){survivors.push(member);continue;}
   const seed=`${j.chapter}|${event}|${member.name}|${j.elapsedMonths}|${months}`;
   const outcome=deterministicPick(crewTurnWeights(j,member,months),seed);
   if(!outcome){survivors.push(member);continue;}
   if(outcome.value==='advance'){
-   const gain=1+Math.floor(unit(seed+'|gain')*Math.max(2,Math.min(6,Math.ceil(months/8)+2)));
+   const rolledGain=1+Math.floor(unit(seed+'|gain')*Math.max(2,Math.min(6,Math.ceil(months/8)+2)));
+   const gain=developmentEnabled(j)?Math.min(rolledGain,Math.max(0,100-member.power)):rolledGain;
    member.power=clamp(member.power+gain,0,100);member.growth+=gain;member.loyalty=clamp(member.loyalty+1,0,100);
    effects.push(`${member.name} ${outcome.label} · power +${gain}, loyalty ${member.loyalty}/100.`);survivors.push(member);
   }else if(outcome.value==='bond'){
@@ -237,7 +244,7 @@ export function resolveCrewTurns(j,months=4,event=''){
    effects.push(`${member.name} leaves the crew with loyalty at ${member.loyalty}/100.`);
   }else if(outcome.value==='death'){
    s.crewDeaths.push({name:member.name,chapter:j.chapter});
-   const canon=CANON.find(c=>c.name===member.name);if(canon&&j.story&&!j.story.dead.includes(canon.id))j.story.dead.push(canon.id);
+   const canon=CANON.find(c=>c.name===member.name||(developmentEnabled(j)&&member.canon&&c.name.split(' ').at(-1)===member.name));if(canon&&j.story&&!j.story.dead.includes(canon.id))j.story.dead.push(canon.id);
    effects.push(`${member.name} dies during the chapter. Their death is permanent in this alternate world.`);
   }
  }

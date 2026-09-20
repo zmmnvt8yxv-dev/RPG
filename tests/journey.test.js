@@ -2,14 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {nextStep,roll} from '../src/engine.js';
 import * as old from '../src/journey-v1.js';
-import {createJourney,nextJourneyStep,applyJourneyRoll,rollJourney,eventPool,trainingPool,combatOdds,saveDocument,loadDocument,levelOf} from '../src/journey.js';
+import {createJourney,nextJourneyStep,applyJourneyRoll,applyJourneyChoice,rollJourney,eventPool,trainingPool,combatOdds,saveDocument,loadDocument,levelOf} from '../src/journey.js';
 import {CANON,canonPool,lifeContext,dreamReadiness,shapeEvents,encounterTones,travelPool} from '../src/story.js';
 import {QGIS_WORLD_SCHEMA,ensureSimulation,effectiveDanger,crewTurnWeights,resolveCrewTurns} from '../src/simulation.js';
 import {WORLD_LOCATIONS,WORLD_ROUTES,WORLD_REGIONS,WORLD_DANGER_ZONES,resolveWorldLocation,worldTravelPool,routeFromTo,startingLocationPool} from '../src/world-map.js';
 function rng(seed){return()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};}
 function origin(overrides={}){const h=[],r=rng(451);const chosen={era:'New World opening',race:'Human',age:'24',faction:'Pirate',haki:'No',devilFruit:'No',fightingStyle:'Three-sword style',crewMode:'Go solo',...overrides};while(nextStep(h)){const s=nextStep(h),item=roll(h,r);if(chosen[s.id]!==undefined){assert(s.options.some(o=>o.value===chosen[s.id]),s.id);item.value=chosen[s.id];}h.push(item);}return h;}
 const base=origin();
-function choose(j,key,value){if(nextJourneyStep(j)?.key==='startLocation'&&key!=='startLocation')applyJourneyRoll(j,'island_foosha_village');assert.equal(nextJourneyStep(j)?.key,key);return applyJourneyRoll(j,value);}
+function choose(j,key,value){if(nextJourneyStep(j)?.key==='startLocation'&&key!=='startLocation')applyJourneyRoll(j,'island_foosha_village');while(nextJourneyStep(j)?.kind==='choice'&&nextJourneyStep(j)?.key!==key){const step=nextJourneyStep(j);applyJourneyChoice(j,step.options.find(o=>o.value==='balanced')?.value||step.options[0].value);}assert.equal(nextJourneyStep(j)?.key,key);return applyJourneyRoll(j,value);}
 function battle(j,result='victory',id='buggy'){choose(j,'event','pirates');choose(j,'opponent',id);choose(j,'tone','hostile');choose(j,'instinct','Steady resolve');choose(j,'resolution',result);}
 const weight=(options,value)=>options.find(o=>o.value===value)?.weight||0;
 test('racial bonuses shift full starting ranks and cap through normal progression tracks',()=>{const h=origin({race:'Fish-man',strength:'Exceptional',durability:'Ordinary',endurance:'Ordinary'}),j=createJourney(h);assert.equal(levelOf(j,'strength'),4);assert.equal(levelOf(j,'durability'),1);assert.equal(levelOf(j,'endurance'),1);assert.equal(j.heritage.bonuses.strength,2);});

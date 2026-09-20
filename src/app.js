@@ -126,7 +126,7 @@ async function spin(){
  setBusy(true);const s=current;const selected=weightedPick(s.options,random);let outcome;
  // Commit before animation. Reloading resumes the next stage, never rerolls this outcome.
  if(journey)outcome=applyJourneyRoll(journey,selected.value);
- else {outcome={id:s.id,label:s.label,group:s.group,value:selected.value,note:selected.note||'',chance:probability(s.options,selected.value)};history.push(outcome);}
+ else {outcome={id:s.id,label:s.label,group:s.group,value:selected.value,note:selected.note||'',chance:probability(s.options,selected.value),...(s.styleRules?{styleRules:s.styleRules}:{})};history.push(outcome);}
  save();
  const total=s.options.reduce((sum,o)=>sum+o.weight,0);let before=0;for(const o of s.options){if(o.value===selected.value)break;before+=o.weight;}
  const center=(before+selected.weight/2)/total*Math.PI*2,target=10*Math.PI+(2*Math.PI-center);const duration=matchMedia('(prefers-reduced-motion: reduce)').matches?0:2200;
